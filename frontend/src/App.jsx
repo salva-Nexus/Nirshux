@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api';
 import LandingPage from './pages/LandingPage';
 import SignUp from './pages/SignUp';
 import SignIn from './pages/SignIn';
@@ -35,7 +35,7 @@ const AppContent = () => {
   const checkAuth = useCallback(async () => {
     if (!token) { setLoading(false); return; }
     try {
-      const res = await axios.get('http://localhost:5000/api/investor/profile', {
+      const res = await API.get('/api/investor/profile', {
         headers: { 'x-auth-token': token }
       });
       setUserData(res.data);
