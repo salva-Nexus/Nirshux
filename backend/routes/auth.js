@@ -35,14 +35,31 @@ router.post('/register', async (req, res) => {
 });
 
 // --- LOGIN ---
+// backend/routes/auth.js - LOGIN route
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(400).json({ msg: "Invalid Credentials" });
+    
+    console.log(`🔍 Login attempt for: ${email}`);
+    
+    // Add timeout wrapper like in forgot-password
+    const user = await Promise.race([
+      User.findOne({ email: email.toLowerCase() }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 15000)
+      )
+    ]);
+    
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(400).json({ msg: "Invalid Credentials" });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Invalid Credentials" });
+    if (!isMatch) {
+      console.log(`❌ Invalid password for: ${email}`);
+      return res.status(400).json({ msg: "Invalid Credentials" });
+    }
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -50,9 +67,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    console.log(`✅ Login successful for: ${email}`);
     res.json({ token, user: { id: user._id, fullName: user.fullName, email: user.email } });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('❌ Login error:', err);
+    
+    if (err.message === 'Database query timeout') {
+      return res.status(504).json({ msg: 'Server timeout. Please try again.' });
+    }
+    
     res.status(500).json({ msg: "Server Error" });
   }
 });

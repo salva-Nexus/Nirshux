@@ -23,7 +23,12 @@ app.use('/api/market', require('./routes/market'));
 mongoose.connect(process.env.MONGO_URI, {
   serverSelectionTimeoutMS: 30000,  // Timeout for selecting server (30s)
   socketTimeoutMS: 45000,            // Timeout for socket operations (45s)
-  family: 4                          // Force IPv4 (helps with some connection issues)
+  family: 4,        
+  retryWrites: true,
+  w: 'majority',
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  connectTimeoutMS: 30000,                  // Force IPv4 (helps with some connection issues)
 })
   .then(() => console.log("✅ Nirshux Database Connected Successfully"))
   .catch((err) => console.log("❌ MongoDB Connection Error:", err));
