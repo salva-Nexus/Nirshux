@@ -6,6 +6,7 @@ const Wallet = require('../models/Wallet');
 const authMiddleware = require('../middleware/auth');
 const historyController = require('../controllers/historyController');
 const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 
 // Initialize Supabase
 const supabase = createClient(
@@ -107,6 +108,40 @@ const calculateRoi = async (user) => {
   }
 };
 
+const sendAdminAlert = async (type, details) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'nirshuxcom@gmail.com', // Your existing email
+        pass: process.env.GMAIL_APP_PASSWORD
+      }
+    });
+
+    await transporter.sendMail({
+      from: '"Nirshux System" <nirshuxcom@gmail.com>',
+      to: 'nirshuxcom@gmail.com', // Sending it to yourself as admin
+      subject: `🚨 NEW ${type.toUpperCase()} REQUEST`,
+      html: `
+        <div style="font-family: monospace; background: #0A0A0B; color: #fff; padding: 20px; border: 1px solid #00F2C3;">
+          <h2 style="color: #00F2C3;">[PROTOCOL ALERT]</h2>
+          <p><strong>Type:</strong> ${type}</p>
+          <p><strong>User:</strong> ${details.email}</p>
+          <p><strong>Amount:</strong> $${details.amount}</p>
+          <p><strong>Asset:</strong> ${details.coin} (${details.network})</p>
+          <hr style="border: 0.5px solid #333;" />
+          <p style="font-size: 10px; color: #666;">Check the Admin Dashboard to approve/reject.</p>
+        </div>
+      `
+    });
+    console.log(`📧 Admin alerted for ${type}`);
+  } catch (err) {
+    console.error("❌ Admin Email Alert Failed:", err.message);
+  }
+};
+
 // --- 1. PROFILE ROUTE (WITH ROI CALCULATION) ---
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
@@ -162,6 +197,7 @@ router.post('/deposit-request', authMiddleware, async (req, res) => {
     });
 
     const savedTrx = await newTrx.save();
+    await sendAdminAlert('Deposit', { email: user.email, amount, coin, network });
     user.transactions.push(savedTrx._id);
     await user.save();
 
@@ -273,6 +309,7 @@ router.post('/withdraw-request', authMiddleware, async (req, res) => {
     });
 
     const savedTrx = await newTrx.save();
+    await sendAdminAlert('Withdrawal', { email: user.email, amount, coin, network });
     user.transactions.push(savedTrx._id);
     await user.save();
 
