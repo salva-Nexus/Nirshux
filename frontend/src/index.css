@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand Colors */
+  --color-nirshux-dark: #0B0E11;
+  --color-nirshux-card: #151921;
+  --color-nirshux-accent: #00F2C3;
+  --color-nirshux-hover: #00D1A8;
+
+  /* Standard Marquee (Left - Price Ticker) */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  --animate-marquee: marquee 35s linear infinite;
+
+  /* Reverse Marquee (Right - Testimonials) */
+  @keyframes marquee-reverse {
+    0% { transform: translateX(-50%); }
+    100% { transform: translateX(0%); }
+  }
+  --animate-marquee-reverse: marquee-reverse 50s linear infinite;
+
+  /* Glowing Border Beam */
+  @keyframes border-beam {
+    0% { offset-distance: 0%; }
+    100% { offset-distance: 100%; }
+  }
+  --animate-border-beam: border-beam 4s linear infinite;
+}
+
+:root {
+  background-color: #0B0E11;
+  color: white;
+  overflow-x: hidden; /* Prevents unwanted horizontal scrolling */
+  font-family: 'Inter', sans-serif;
+}
+
+/* Optional: Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}

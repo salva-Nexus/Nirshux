@@ -1,0 +1,267 @@
+// frontend/src/pages/Dashboard.jsx
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { TickerTape } from "react-ts-tradingview-widgets";
+
+// Components
+import StatsGrid from '../components/Dashboard/StatsGrid';
+import CoinChart from '../components/Dashboard/CoinChart';
+import TransactionTable from '../components/Dashboard/TransactionTable';
+import InvestmentModal from '../components/Dashboard/InvestmentModal';
+import DepositModal from '../components/Dashboard/DepositModal';
+import WithdrawalModal from '../components/WithdrawalModal';
+import GrowthCircle from '../components/Dashboard/GrowthCircle';
+import Sidebar from '../components/Dashboard/Sidebar';
+import ActiveInvestments from './ActiveInvestments'; 
+import History from '../components/History';
+import ProfileView from './ProfileView';
+
+const Dashboard = () => {
+  const [userData, setUserData] = useState(null);
+  const [view, setView] = useState('oversight'); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [terminalMsg, setTerminalMsg] = useState(""); // New: Notification State
+  const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+
+  // New: Silent Notification Logic
+  const triggerNotification = (msg) => {
+    setTerminalMsg(msg);
+    setTimeout(() => setTerminalMsg(""), 3000);
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = '/signin';
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchDashboardData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) { navigate('/signin'); return; }
+    try {
+      const res = await axios.get('http://localhost:5000/api/investor/profile', {
+        headers: { 'x-auth-token': token }
+      });
+      setUserData(res.data);
+    } catch (err) {
+      if (err.response?.status === 401) navigate('/signin');
+    }
+  }, [navigate]);
+
+  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+
+  if (!userData) return (
+    <div className="min-h-screen bg-[#0B0E11] flex items-center justify-center text-nirshux-accent font-mono uppercase tracking-[0.2em]">
+      Syncing Terminal...
+    </div>
+  );
+
+  return (
+    <div className="bg-[#0B0E11] min-h-screen text-white overflow-x-hidden relative">
+      <style>{`
+        .tradingview-widget-copyright { display: none !important; }
+        .ticker-wrapper { height: 35px !important; overflow: hidden; }
+      `}</style>
+
+      {/* NEW: TEMPORAL SLIDE NOTIFICATION */}
+      {terminalMsg && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-nirshux-accent text-black px-6 py-2 font-mono text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-300">
+          ⚡ {terminalMsg}
+        </div>
+      )}
+      
+      {/* 1. TICKER TAPE */}
+      <div className="fixed top-0 left-0 w-full z-[170] border-b border-white/5 bg-[#0B0E11] ticker-wrapper">
+        <TickerTape colorTheme="dark" symbols={[{proName: "BINANCE:BTCUSDT", title: "BTC"}, {proName: "BINANCE:ETHUSDT", title: "ETH"}]} />
+      </div>
+
+      {/* 2. NAV */}
+      <nav className="fixed top-[35px] left-0 w-full flex justify-between items-center px-4 md:px-10 bg-[#0B0E11]/95 backdrop-blur-md z-[165] border-b border-white/5 h-[60px] md:h-[70px]">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}
+            className="xl:hidden p-2 hover:bg-white/5 rounded-lg transition-colors"
+          >
+            <div className="w-5 h-[1.5px] bg-nirshux-accent mb-1"></div>
+            <div className="w-5 h-[1.5px] bg-nirshux-accent mb-1"></div>
+            <div className="w-3 h-[1.5px] bg-nirshux-accent"></div>
+          </button>
+          <div className="text-lg md:text-2xl font-black text-nirshux-accent tracking-tighter uppercase italic">Nirshux</div>
+        </div>
+        
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="flex items-center gap-2 md:gap-3 bg-white/5 p-1 md:p-1.5 pr-3 md:pr-4 rounded-full border border-white/10 hover:bg-white/10 transition-all"
+          >
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-nirshux-accent text-black flex items-center justify-center font-bold text-xs">
+              {userData.fullName?.charAt(0)}
+            </div>
+            <div className="hidden sm:block text-left leading-tight">
+              <p className="text-[10px] md:text-xs font-bold truncate max-w-[120px]">{userData.fullName}</p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-tighter">{userData.role}</p>
+            </div>
+          </button>
+
+          {isProfileOpen && (
+            <div className="absolute right-0 mt-3 w-64 bg-[#161A1E] border border-white/10 rounded-2xl shadow-2xl p-2 z-[170] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-4 border-b border-white/5 mb-2">
+                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">Available Balance</p>
+                  <p className="text-xl font-mono text-nirshux-accent">${userData.balance?.toLocaleString() || '0.00'}</p>
+                </div>
+                {userData.role === 'admin' && (
+                  <button onClick={() => navigate('/admin-panel')} className="w-full text-left p-3 text-nirshux-accent bg-nirshux-accent/10 rounded-xl text-sm font-black mb-2 hover:bg-nirshux-accent/20 transition-all uppercase italic flex items-center gap-2">
+                    ⚡ Admin Terminal
+                  </button>
+                )}
+                <button onClick={handleLogout} className="w-full text-left p-3 text-red-400 hover:bg-red-400/10 rounded-xl text-sm transition-all font-bold">Sign Out</button>
+            </div>
+          )}
+        </div>
+      </nav>
+
+      <div className="flex">
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          setIsOpen={setIsSidebarOpen}
+          openDeposit={() => setIsDepositOpen(true)} 
+          openInvest={() => setIsModalOpen(true)} 
+          openWithdraw={() => setIsWithdrawOpen(true)}
+          setView={setView} 
+        />
+
+        <main className="flex-1 px-4 md:px-8 pt-[115px] md:pt-[140px] xl:ml-64 max-w-[1600px] mx-auto pb-24 transition-all">
+          
+          {/* VIEW: OVERSIGHT */}
+          {view === 'oversight' && (
+            <div className="animate-in fade-in duration-500">
+              <header className="mb-8 md:mb-12 relative z-10">
+                <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic leading-none">
+                  TERMINAL <span className="text-nirshux-accent">OVERSIGHT</span>
+                </h1>
+                <p className="text-gray-500 mt-2 text-[9px] md:text-xs font-mono tracking-widest uppercase">
+                  System Status: <span className="text-green-500 font-black">Operational</span>
+                </p>
+              </header>
+
+              <StatsGrid userData={userData} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-10">
+                <div className="lg:col-span-2 xl:col-span-3">
+                   <CoinChart />
+                </div>
+                <div className="space-y-6">
+                   <GrowthCircle totalInvested={userData.totalInvested || 0} totalEarned={userData.totalEarned || 0} />
+                   
+                   {/* --- RESTORED REFERRAL LINK BOX --- */}
+                   <div className="bg-white/5 border border-white/10 p-6 rounded-3xl mb-6">
+                    <h3 className="font-bold mb-3 uppercase text-[10px] tracking-widest italic text-gray-400">Your Referral Protocol</h3>
+                    <div className="flex items-center gap-2 bg-black/40 p-3 rounded-xl border border-white/5">
+                      <input 
+                        readOnly 
+                        value={`${window.location.origin}/signup?ref=${userData.referralId}`}
+                        className="bg-transparent text-[10px] font-mono text-nirshux-accent outline-none w-full"
+                      />
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${userData.referralId}`);
+                          triggerNotification("LINK_SECURED_TO_CLIPBOARD"); // Replaced alert
+                        }}
+                        className="text-[10px] font-black hover:text-nirshux-accent transition-colors uppercase italic"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <p className="text-[9px] text-gray-500 mt-3 leading-tight uppercase font-mono">
+                      Earn commissions on all network transmissions from invited terminals.
+                    </p>
+                  </div>
+
+                   <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
+                      <h3 className="font-bold mb-3 uppercase text-xs tracking-widest italic text-gray-400 text-left">Action Center</h3>
+                      <button onClick={() => setIsModalOpen(true)} className="w-full py-4 bg-nirshux-accent text-black font-black rounded-2xl hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">Deploy Capital</button>
+                   </div>
+                </div>
+              </div>
+
+              <div className="mt-12 bg-white/5 border border-white/10 rounded-3xl p-4 md:p-8 overflow-hidden">
+                 <h3 className="text-xl font-black mb-6 uppercase italic">Recent Transmissions</h3>
+                 <TransactionTable transactions={userData.transactions || []} limit={5} />
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: ACTIVE PLANS */}
+          {view === 'active' && (
+            <div className="animate-in slide-in-from-bottom-4 duration-500">
+              <header className="mb-8 md:mb-12 relative z-10">
+                <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic leading-none">
+                  ACTIVE <span className="text-nirshux-accent">STAKES</span>
+                </h1>
+                <p className="text-gray-500 mt-2 text-[9px] md:text-xs font-mono tracking-widest uppercase">
+                  Nirshux Engine // Protocol Live
+                </p>
+              </header>
+              <ActiveInvestments user={userData} />
+            </div>
+          )}
+
+          {/* VIEW: FORENSIC HISTORY */}
+          {view === 'history' && (
+            <div className="animate-in slide-in-from-bottom-4 duration-500">
+              <History />
+            </div>
+          )}
+
+          {/* VIEW: PROFILE */}
+          {view === 'profile' && (
+            <ProfileView 
+              userData={userData} 
+              onRefresh={fetchDashboardData} 
+              triggerNotification={triggerNotification} 
+            />  
+          )}
+
+          {/* VIEW: REFERRALS */}
+          {view === 'referrals' && (
+            <div className="flex flex-col items-center justify-center min-h-[50vh]">
+               <div className="w-12 h-12 border-2 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin mb-4"></div>
+               <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Referral Module Offline</p>
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      {/* MODAL OVERLAYS */}
+      <InvestmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} refreshData={fetchDashboardData} />
+      <DepositModal isOpen={isDepositOpen} onClose={() => setIsDepositOpen(false)} refreshData={fetchDashboardData} />
+      <WithdrawalModal 
+        isOpen={isWithdrawOpen} 
+        onClose={() => setIsWithdrawOpen(false)} 
+        user={userData} 
+        onRefresh={() => {
+           fetchDashboardData();
+           triggerNotification("WITHDRAWAL_PROTOCOL_STAGED"); // Logic notification
+        }} 
+      />
+    </div>
+  );
+};
+
+export default Dashboard;
