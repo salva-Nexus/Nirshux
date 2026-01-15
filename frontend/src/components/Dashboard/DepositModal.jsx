@@ -8,18 +8,29 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('idle');
-  const [showToast, setShowToast] = useState(false); // NEW: Notification state
+  const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState(''); // NEW: Track errors
 
-  
   useEffect(() => {
     if (isOpen && step === 2) {
+      setLoading(true);
+      setError('');
       API.get(`/api/investor/whitelisted-wallets`) 
-        .then(res => setWallets(res.data))
-        .catch(err => console.error("GATEWAY_SYNC_CRITICAL_FAILURE", err));
+        .then(res => {
+          console.log('Wallets fetched:', res.data);
+          setWallets(res.data);
+          if (res.data.length === 0) {
+            setError('No payment gateways available. Contact admin.');
+          }
+        })
+        .catch(err => {
+          console.error("GATEWAY_SYNC_CRITICAL_FAILURE", err);
+          setError('Failed to load payment methods. Try again.');
+        })
+        .finally(() => setLoading(false));
     }
   }, [isOpen, step]);
 
-  // NEW: Copy Logic with Notification
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
     setShowToast(true);
@@ -29,12 +40,13 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
   const handleFinalize = async () => {
     setLoading(true);
     try {
+      // FIXED: Removed undefined 'config' parameter
       await API.post(`/api/investor/deposit-request`, {
         amount: parseFloat(amount),
         coin: selectedWallet.symbol,
         network: selectedWallet.network,
         addressUsed: selectedWallet.address
-      }, config);
+      });
       
       setStatus('success');
       refreshData();
@@ -42,8 +54,11 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
         onClose();
         setStep(1);
         setStatus('idle');
+        setAmount('');
+        setSelectedWallet(null);
       }, 2000);
     } catch (err) {
+      console.error('Deposit request error:', err);
       setStatus('error');
     } finally {
       setLoading(false);
@@ -106,10 +121,21 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
             </button>
             <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-8 text-white">Select <span className="text-nirshux-accent">Gateway</span></h2>
             
+            {error && (
+              <div className="mb-6 bg-red-500/10 border border-red-500/30 p-4 rounded-2xl">
+                <p className="text-red-400 text-xs font-mono">{error}</p>
+              </div>
+            )}
+            
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {wallets.length === 0 ? (
+              {loading ? (
                 <div className="text-center py-20 border border-dashed border-white/5 rounded-3xl bg-white/5">
-                    <p className="text-gray-500 font-mono text-[10px] uppercase animate-pulse tracking-[0.3em]">Syncing Secure Nodes...</p>
+                  <p className="text-gray-500 font-mono text-[10px] uppercase animate-pulse tracking-[0.3em]">Syncing Secure Nodes...</p>
+                </div>
+              ) : wallets.length === 0 ? (
+                <div className="text-center py-20 border border-dashed border-red-500/20 rounded-3xl bg-red-500/5">
+                  <p className="text-red-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-2">No Gateways Available</p>
+                  <p className="text-gray-500 font-mono text-[9px]">Contact admin to add payment methods</p>
                 </div>
               ) : (
                 wallets.map(w => (
@@ -130,7 +156,7 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
         )}
 
         {/* STEP 3: FINAL TRANSMISSION */}
-        {step === 3 && (
+        {step === 3 && selectedWallet && (
           <div className="animate-in fade-in zoom-in-95 text-white">
             <button onClick={() => setStep(2)} className="mb-4 text-[10px] text-gray-500 uppercase font-black hover:text-nirshux-accent transition-colors font-mono tracking-widest">
               ← Change Method
@@ -194,9 +220,9 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
             <button 
               onClick={handleFinalize} 
               disabled={loading} 
-              className={`w-full font-black uppercase py-5 rounded-2xl tracking-[0.2em] transition-all shadow-xl ${status === 'success' ? 'bg-green-500 text-white' : 'bg-white text-black hover:bg-nirshux-accent'}`}
+              className={`w-full font-black uppercase py-5 rounded-2xl tracking-[0.2em] transition-all shadow-xl ${status === 'success' ? 'bg-green-500 text-white' : status === 'error' ? 'bg-red-500 text-white' : 'bg-white text-black hover:bg-nirshux-accent'}`}
             >
-              {loading ? "TRANSMITTING..." : status === 'success' ? "TRANSMISSION LOGGED" : "CONFIRM DEPOSIT"}
+              {loading ? "TRANSMITTING..." : status === 'success' ? "✓ TRANSMISSION LOGGED" : status === 'error' ? "✗ FAILED - RETRY" : "CONFIRM DEPOSIT"}
             </button>
           </div>
         )}

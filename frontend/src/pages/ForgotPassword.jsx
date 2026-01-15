@@ -1,4 +1,4 @@
-// ForgotPassword.jsx
+// frontend/src/pages/ForgotPassword.jsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';

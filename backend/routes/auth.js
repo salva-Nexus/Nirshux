@@ -5,19 +5,7 @@ const User = require('../models/User');
 const { nanoid } = require('nanoid'); 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize Supabase Admin Client
-const supabase = createClient(
-  process.env.SUPABASE_URL, 
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+const nodemailer = require('nodemailer');
 
 // --- REGISTRATION ---
 router.post('/register', async (req, res) => {
@@ -73,8 +61,27 @@ router.post('/login', async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
-    if (!user) return res.status(404).json({ msg: 'Terminal error: User not found.' });
+    
+    if (!email) {
+      return res.status(400).json({ msg: 'Email is required.' });
+    }
+
+    console.log(`🔍 Searching for user: ${email.trim().toLowerCase()}`);
+    
+    // Add timeout wrapper for findOne
+    const user = await Promise.race([
+      User.findOne({ email: email.trim().toLowerCase() }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 15000)
+      )
+    ]);
+
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(404).json({ msg: 'Terminal error: User not found.' });
+    }
+
+    console.log(`✅ User found: ${user.email}`);
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -84,11 +91,10 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordExpire = Date.now() + 600000; // 10 minutes
     await user.save();
 
-    console.log(`Generated OTP for ${email}: ${otp}`); // Debug log
+    console.log(`Generated OTP for ${email}: ${otp}`);
 
     // Send email via Nodemailer
     try {
-      const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
@@ -117,15 +123,20 @@ router.post('/forgot-password', async (req, res) => {
         `
       });
 
-      console.log('Password reset email sent successfully');
+      console.log('✅ Password reset email sent successfully');
+      res.json({ msg: 'Reset protocol initiated. Check your email.' });
     } catch (emailError) {
-      console.error('Email sending error:', emailError);
+      console.error('❌ Email sending error:', emailError);
       return res.status(500).json({ msg: 'Email delivery failed. Check SMTP configuration.' });
     }
 
-    res.json({ msg: 'Reset protocol initiated. Check your email.' });
   } catch (err) {
-    console.error('Forgot password error:', err);
+    console.error('❌ Forgot password error:', err);
+    
+    if (err.message === 'Database query timeout') {
+      return res.status(504).json({ msg: 'Database timeout. Please try again.' });
+    }
+    
     res.status(500).json({ msg: 'Internal server error.' });
   }
 });
@@ -135,23 +146,42 @@ router.post('/verify-otp', async (req, res) => {
   try {
     const { email, code } = req.body;
     
-    const user = await User.findOne({ 
-      email: email.trim().toLowerCase(),
-      resetPasswordToken: code.trim()
-    });
+    if (!email || !code) {
+      return res.status(400).json({ msg: 'Email and code are required.' });
+    }
+
+    console.log(`🔍 Verifying OTP for: ${email.trim().toLowerCase()}`);
+    
+    const user = await Promise.race([
+      User.findOne({ 
+        email: email.trim().toLowerCase(),
+        resetPasswordToken: code.trim()
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 15000)
+      )
+    ]);
 
     if (!user) {
+      console.log(`❌ Invalid OTP for: ${email}`);
       return res.status(400).json({ msg: 'Invalid or expired code.' });
     }
 
     // Check if code has expired
     if (Date.now() > user.resetPasswordExpire) {
+      console.log(`⏰ Expired OTP for: ${email}`);
       return res.status(400).json({ msg: 'Code has expired. Request a new one.' });
     }
 
+    console.log(`✅ OTP verified for: ${email}`);
     res.json({ msg: 'Security Clear. Code verified.' });
   } catch (err) {
-    console.error('Verify OTP error:', err);
+    console.error('❌ Verify OTP error:', err);
+    
+    if (err.message === 'Database query timeout') {
+      return res.status(504).json({ msg: 'Database timeout. Please try again.' });
+    }
+    
     res.status(500).json({ msg: 'Verification error.' });
   }
 });
@@ -160,9 +190,24 @@ router.post('/verify-otp', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
     
-    if (!user) return res.status(404).json({ msg: 'User profile not found.' });
+    if (!email || !password) {
+      return res.status(400).json({ msg: 'Email and password are required.' });
+    }
+
+    console.log(`🔍 Resetting password for: ${email.trim().toLowerCase()}`);
+    
+    const user = await Promise.race([
+      User.findOne({ email: email.trim().toLowerCase() }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 15000)
+      )
+    ]);
+    
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(404).json({ msg: 'User profile not found.' });
+    }
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
@@ -173,9 +218,15 @@ router.post('/reset-password', async (req, res) => {
     
     await user.save();
 
+    console.log(`✅ Password reset successful for: ${email}`);
     res.json({ msg: 'Password updated successfully.' });
   } catch (err) {
-    console.error('Reset password error:', err);
+    console.error('❌ Reset password error:', err);
+    
+    if (err.message === 'Database query timeout') {
+      return res.status(504).json({ msg: 'Database timeout. Please try again.' });
+    }
+    
     res.status(500).json({ msg: 'Update failed.' });
   }
 });

@@ -7,7 +7,6 @@ const cors = require('cors');
 const app = express();
 
 // --- MIDDLEWARE ---
-// --- MIDDLEWARE ---
 app.use(cors({
   origin: ["https://nirshux.online", "https://www.nirshux.online"],
   credentials: true
@@ -20,8 +19,12 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/investor', require('./routes/investor'));
 app.use('/api/market', require('./routes/market'));
 
-// --- DATABASE CONNECTION ---
-mongoose.connect(process.env.MONGO_URI)
+// --- DATABASE CONNECTION WITH TIMEOUT CONFIG ---
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 30000,  // Timeout for selecting server (30s)
+  socketTimeoutMS: 45000,            // Timeout for socket operations (45s)
+  family: 4                          // Force IPv4 (helps with some connection issues)
+})
   .then(() => console.log("✅ Nirshux Database Connected Successfully"))
   .catch((err) => console.log("❌ MongoDB Connection Error:", err));
 
