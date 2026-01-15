@@ -84,10 +84,10 @@ const Dashboard = () => {
         </div>
       </div>
       <p className="text-nirshux-accent font-mono uppercase tracking-[0.3em] text-sm font-black animate-pulse">
-        {isCalculatingRoi ? 'Calculating ROI...' : 'Syncing Terminal...'}
+        {isCalculatingRoi ? 'LOADING...' : 'Syncing Terminal...'}
       </p>
       <p className="text-gray-600 font-mono text-[10px] uppercase tracking-wider mt-2">
-        Processing active investments
+        Please Wait...
       </p>
     </div>
   );
