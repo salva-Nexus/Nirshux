@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import API from '../api';
+import API from '../../api';
 
 const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
   const [selectedPlan, setSelectedPlan] = useState(null);
