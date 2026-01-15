@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const WalletManager = () => {
   const [wallets, setWallets] = useState([]);
@@ -12,7 +12,7 @@ const WalletManager = () => {
 
   const fetchWallets = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/investor/whitelisted-wallets');
+      const res = await API.get('/api/investor/whitelisted-wallets');
       setWallets(res.data);
     } catch (err) {
       console.error("Error fetching wallets");
@@ -25,7 +25,7 @@ const WalletManager = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/admin/whitelist-wallet', formData, {
+      await API.post('/api/admin/whitelist-wallet', formData, {
         headers: { 'x-auth-token': token }
       });
       alert("Wallet Whitelisted!");

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import API from '../api'; // Import your custom axios instance
 
 const AdminPanel = () => {
   const [pendingDeposits, setPendingDeposits] = useState([]);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState([]); // NEW: Withdrawal State
+  const [pendingWithdrawals, setPendingWithdrawals] = useState([]); 
   const [users, setUsers] = useState([]);
   const [wallets, setWallets] = useState([]);
   const [toast, setToast] = useState({ show: false, msg: '', type: 'info' });
@@ -13,8 +13,8 @@ const AdminPanel = () => {
   const [adjustingUser, setAdjustingUser] = useState(null); 
   const [adjAmount, setAdjAmount] = useState('');
 
-  const API_BASE = "http://localhost:5000/api/admin";
-  const getHeader = () => ({ headers: { 'x-auth-token': localStorage.getItem('token') } });
+  // ✅ NO LONGER NEEDED: API_BASE and getHeader
+  // The token is now handled automatically by the interceptor in api.js
 
   const showToast = (msg, type = 'info') => {
     setToast({ show: true, msg, type });
@@ -24,14 +24,15 @@ const AdminPanel = () => {
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsSyncing(true);
     try {
+      // ✅ CHANGED: Using API instead of axios and shortening URLs
       const [depRes, withRes, userRes, wallRes] = await Promise.all([
-        axios.get(`${API_BASE}/pending-deposits`, getHeader()),
-        axios.get(`${API_BASE}/pending-withdrawals`, getHeader()), // NEW FETCH
-        axios.get(`${API_BASE}/users`, getHeader()),
-        axios.get(`${API_BASE}/wallets`, getHeader())
+        API.get('/api/admin/pending-deposits'),
+        API.get('/api/admin/pending-withdrawals'),
+        API.get('/api/admin/users'), 
+        API.get('/api/admin/wallets')
       ]);
       setPendingDeposits(depRes.data);
-      setPendingWithdrawals(withRes.data); // SET WITHDRAWALS
+      setPendingWithdrawals(withRes.data);
       setUsers(userRes.data);
       setWallets(wallRes.data);
     } catch (err) { 
@@ -52,7 +53,8 @@ const AdminPanel = () => {
     if (!adjAmount || isNaN(amountNum)) return showToast("INVALID_INPUT", "error");
     const finalVal = mode === 'sub' ? -Math.abs(amountNum) : Math.abs(amountNum);
     try {
-      await axios.put(`${API_BASE}/user/adjust-balance/${userId}`, { amount: finalVal }, getHeader());
+      // ✅ CHANGED: axios.put -> API.put
+      await API.put(`/api/admin/user/adjust-balance/${userId}`, { amount: finalVal });
       showToast("LIQUIDITY_MUTATED", "success");
       setAdjustingUser(null);
       setAdjAmount('');
@@ -62,18 +64,17 @@ const AdminPanel = () => {
 
   const handleDepositAction = async (id, action) => {
     try {
-      const endpoint = action === 'approve' ? `/deposit/approve/${id}` : `/deposit/reject/${id}`;
-      await axios.put(`${API_BASE}${endpoint}`, {}, getHeader());
+      const endpoint = action === 'approve' ? `/api/admin/deposit/approve/${id}` : `/api/admin/deposit/reject/${id}`;
+      await API.put(endpoint, {});
       showToast(action === 'approve' ? "FUNDS_AUTHORIZED" : "DEPOSIT_REJECTED", "success");
       fetchData(true);
     } catch (err) { showToast("ACTION_FAILED", "error"); }
   };
 
-  // NEW: WITHDRAWAL ACTION LOGIC
   const handleWithdrawalAction = async (id, action) => {
     try {
-      const endpoint = action === 'approve' ? `/withdrawal/approve/${id}` : `/withdrawal/reject/${id}`;
-      await axios.put(`${API_BASE}${endpoint}`, {}, getHeader());
+      const endpoint = action === 'approve' ? `/api/admin/withdrawal/approve/${id}` : `/api/admin/withdrawal/reject/${id}`;
+      await API.put(endpoint, {});
       showToast(action === 'approve' ? "PAYOUT_EXECUTED" : "WITHDRAWAL_REJECTED", "success");
       fetchData(true);
     } catch (err) { showToast(err.response?.data?.msg || "ACTION_FAILED", "error"); }
@@ -82,7 +83,7 @@ const AdminPanel = () => {
   const handleWhitelist = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/whitelist-wallet`, newWallet, getHeader());
+      await API.post('/api/admin/whitelist-wallet', newWallet);
       showToast("ASSET_AUTHORIZED", "success");
       setNewWallet({ coinName: '', symbol: '', network: '', address: '' });
       fetchData();
@@ -91,7 +92,7 @@ const AdminPanel = () => {
 
   const deListWallet = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/wallet/${id}`, getHeader());
+      await API.delete(`/api/admin/wallet/${id}`);
       showToast("ASSET_REVOKED", "success");
       fetchData();
     } catch (err) { showToast("REVOCATION_FAILED", "error"); }
@@ -100,7 +101,7 @@ const AdminPanel = () => {
   const wipeUser = async (id) => {
     if(!window.confirm("PERMANENTLY PURGE SUBJECT?")) return;
     try {
-      await axios.delete(`${API_BASE}/user/${id}`, getHeader());
+      await API.delete(`/api/admin/user/${id}`);
       showToast("USER_PURGED", "success");
       fetchData();
     } catch (err) { showToast("PURGE_FAILED", "error"); }

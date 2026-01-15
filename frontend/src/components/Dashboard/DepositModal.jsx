@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const DepositModal = ({ isOpen, onClose, refreshData }) => {
   const [step, setStep] = useState(1);
@@ -10,12 +10,10 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
   const [status, setStatus] = useState('idle');
   const [showToast, setShowToast] = useState(false); // NEW: Notification state
 
-  const API_BASE = "http://localhost:5000/api";
-  const config = { headers: { 'x-auth-token': localStorage.getItem('token') } };
-
+  
   useEffect(() => {
     if (isOpen && step === 2) {
-      axios.get(`${API_BASE}/investor/whitelisted-wallets`, config) 
+      API.get(`/api/investor/whitelisted-wallets`) 
         .then(res => setWallets(res.data))
         .catch(err => console.error("GATEWAY_SYNC_CRITICAL_FAILURE", err));
     }
@@ -31,7 +29,7 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
   const handleFinalize = async () => {
     setLoading(true);
     try {
-      await axios.post(`${API_BASE}/investor/deposit-request`, {
+      await API.post(`/api/investor/deposit-request`, {
         amount: parseFloat(amount),
         coin: selectedWallet.symbol,
         network: selectedWallet.network,

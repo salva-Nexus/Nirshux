@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const WithdrawalModal = ({ isOpen, onClose, user, onRefresh }) => {
   const [step, setStep] = useState(1);
@@ -15,7 +15,7 @@ const WithdrawalModal = ({ isOpen, onClose, user, onRefresh }) => {
     const fetchWallets = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/investor/whitelisted-wallets', {
+        const res = await API.get('/api/investor/whitelisted-wallets', {
           headers: { 'x-auth-token': token }
         });
         setWallets(res.data);
@@ -44,7 +44,7 @@ const WithdrawalModal = ({ isOpen, onClose, user, onRefresh }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/investor/withdraw-request', {
+      await API.post('/api/investor/withdraw-request', {
         amount: Number(amount),
         coin: selectedCoin.coinName,
         network: selectedCoin.network,

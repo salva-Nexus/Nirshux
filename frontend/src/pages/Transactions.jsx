@@ -1,6 +1,6 @@
 // Transactions.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -9,7 +9,7 @@ const Transactions = () => {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/investor/profile', {
+        const res = await API.post('/api/investor/profile', {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
         // We use the populated transactions from the profile route we updated earlier

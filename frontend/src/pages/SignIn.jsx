@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api';
 
 const SignIn = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -21,7 +21,7 @@ const SignIn = () => {
 
     try {
       // 1. Send to Backend
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      const res = await API.post('/api/auth/login', { email, password });
 
       // 2. Save JWT & User info
       localStorage.setItem('token', res.data.token);

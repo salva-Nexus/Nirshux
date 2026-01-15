@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api';
 
 const SignUp = () => {
   const [searchParams] = useSearchParams();
@@ -23,7 +23,7 @@ const SignUp = () => {
     setStatus({ type: '', msg: '' });
     
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await API.post('/api/auth/register', {
         ...formData,
         ref: referralCode
       });

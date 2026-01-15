@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -20,14 +20,14 @@ const ForgotPassword = () => {
     try {
       if (step === 1) {
         // STEP 1: Request OTP via Supabase/Gmail SMTP
-        await axios.post('http://localhost:5000/api/auth/forgot-password', { 
+        await API.post('/api/auth/forgot-password', { 
           email: email.trim().toLowerCase() 
         });
         setStatus({ type: 'success', msg: 'Reset protocol initiated. Code sent to terminal.' });
         setStep(2); 
       } else {
         // STEP 2: Verify the OTP with Supabase
-        await axios.post('http://localhost:5000/api/auth/verify-otp', { 
+        await API.post('/api/auth/verify-otp', { 
           email: email.trim().toLowerCase(),
           code: code.trim()
         });

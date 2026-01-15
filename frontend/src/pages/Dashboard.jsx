@@ -1,7 +1,7 @@
 // frontend/src/pages/Dashboard.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api';
 import { TickerTape } from "react-ts-tradingview-widgets";
 
 // Components
@@ -60,7 +60,7 @@ const Dashboard = () => {
     setIsCalculatingRoi(true);
 
     try {
-      const res = await axios.get('http://localhost:5000/api/investor/profile', {
+      const res = await API.get('/api/investor/profile', {
         headers: { 'x-auth-token': token }
       });
       setUserData(res.data);

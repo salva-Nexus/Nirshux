@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -36,7 +36,7 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/investor/invest', {
+      const response = await API.post('/api/investor/invest', {
         amount: Number(amount),
         planName: selectedPlan.name,
         dailyRoi: selectedPlan.dailyValue,

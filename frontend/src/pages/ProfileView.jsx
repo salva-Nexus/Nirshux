@@ -1,6 +1,6 @@
 // ProfileView.jsx
 import React, { useState } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const ProfileView = ({ userData, onRefresh, triggerNotification }) => {
   const [isEditingName, setIsEditingName] = useState(false);
@@ -30,7 +30,7 @@ const ProfileView = ({ userData, onRefresh, triggerNotification }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/investor/update-name', { fullName: newName }, { headers: { 'x-auth-token': token } });
+      await API.put('/api/investor/update-name', { fullName: newName }, { headers: { 'x-auth-token': token } });
       
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const updatedUser = { ...currentUser, fullName: newName };
@@ -54,7 +54,7 @@ const requestEmailCode = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/investor/request-email-update', 
+      await API.post('/api/investor/request-email-update', 
         { oldEmail: formData.oldEmail }, // Only sending old email
         { headers: { 'x-auth-token': token } }
       );
@@ -72,7 +72,7 @@ const requestEmailCode = async () => {
     try {
       const token = localStorage.getItem('token');
       // Step 2: Check if code is valid before asking for new email
-      await axios.post('http://localhost:5000/api/investor/verify-update-code', 
+      await API.post('/api/investor/verify-update-code', 
         { code: formData.code }, 
         { headers: { 'x-auth-token': token } }
       );
@@ -90,7 +90,7 @@ const requestEmailCode = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:5000/api/investor/confirm-email-update', 
+      await API.put('/api/investor/confirm-email-update', 
         { code: formData.code, newEmail: formData.newEmail }, 
         { headers: { 'x-auth-token': token } }
       );
@@ -113,7 +113,7 @@ const requestEmailCode = async () => {
   const requestPasswordCode = async () => {
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/forgot-password', { email: userData.email });
+      await API.post('/api/auth/forgot-password', { email: userData.email });
       setStep(2);
       triggerNotification("RESET_CODE_SENT");
     } catch (err) { 
@@ -126,7 +126,7 @@ const requestEmailCode = async () => {
   const handleVerifyPasswordCode = async () => {
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/verify-otp', { email: userData.email, code: formData.code });
+      await API.post('/api/auth/verify-otp', { email: userData.email, code: formData.code });
       setStep(3);
       triggerNotification("SECURITY_CLEARED_PROCEED");
     } catch (err) {
@@ -142,7 +142,7 @@ const requestEmailCode = async () => {
     }
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/auth/reset-password', { 
+      await API.post('/api/auth/reset-password', { 
         email: userData.email, 
         password: formData.newPassword 
       });

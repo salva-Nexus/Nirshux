@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../api';
 
 const History = () => {
   const [transactions, setTransactions] = useState([]);
@@ -10,7 +10,7 @@ const History = () => {
     const fetchHistory = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/investor/history', {
+        const res = await API.get('/api/investor/history', {
           headers: { 'x-auth-token': token }
         });
         // Log this to your console to see the actual keys (date vs createdAt)

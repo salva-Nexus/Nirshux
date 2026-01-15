@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import API from '../api';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -24,7 +24,7 @@ const ResetPassword = () => {
     setStatus({ type: '', msg: '' });
     try {
       // Updates the password in your MongoDB via the unified backend route
-      await axios.post('http://localhost:5000/api/auth/reset-password', { email, password });
+      await API.post('/api/auth/reset-password', { email, password });
       setStatus({ type: 'success', msg: 'Password updated. Protocol complete. Redirecting...' });
       setTimeout(() => navigate('/signin'), 2000);
     } catch (err) {
