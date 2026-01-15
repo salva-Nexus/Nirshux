@@ -7,7 +7,11 @@ const cors = require('cors');
 const app = express();
 
 // --- MIDDLEWARE ---
-app.use(cors()); 
+// --- MIDDLEWARE ---
+app.use(cors({
+  origin: ["https://nirshux.online", "https://www.nirshux.online"],
+  credentials: true
+}));
 app.use(express.json()); 
 
 // --- ROUTES ---
