@@ -25,11 +25,11 @@ const Dashboard = () => {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [terminalMsg, setTerminalMsg] = useState(""); // New: Notification State
+  const [terminalMsg, setTerminalMsg] = useState("");
+  const [isCalculatingRoi, setIsCalculatingRoi] = useState(true);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
-  // New: Silent Notification Logic
   const triggerNotification = (msg) => {
     setTerminalMsg(msg);
     setTimeout(() => setTerminalMsg(""), 3000);
@@ -52,7 +52,13 @@ const Dashboard = () => {
 
   const fetchDashboardData = useCallback(async () => {
     const token = localStorage.getItem('token');
-    if (!token) { navigate('/signin'); return; }
+    if (!token) { 
+      navigate('/signin'); 
+      return; 
+    }
+
+    setIsCalculatingRoi(true);
+
     try {
       const res = await axios.get('http://localhost:5000/api/investor/profile', {
         headers: { 'x-auth-token': token }
@@ -60,14 +66,29 @@ const Dashboard = () => {
       setUserData(res.data);
     } catch (err) {
       if (err.response?.status === 401) navigate('/signin');
+    } finally {
+      setIsCalculatingRoi(false);
     }
   }, [navigate]);
 
-  useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+  useEffect(() => { 
+    fetchDashboardData(); 
+  }, [fetchDashboardData]);
 
-  if (!userData) return (
-    <div className="min-h-screen bg-[#0B0E11] flex items-center justify-center text-nirshux-accent font-mono uppercase tracking-[0.2em]">
-      Syncing Terminal...
+  if (isCalculatingRoi || !userData) return (
+    <div className="min-h-screen bg-[#0B0E11] flex flex-col items-center justify-center">
+      <div className="relative mb-8">
+        <div className="w-20 h-20 border-4 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin"></div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-nirshux-accent/30 border-b-nirshux-accent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }}></div>
+        </div>
+      </div>
+      <p className="text-nirshux-accent font-mono uppercase tracking-[0.3em] text-sm font-black animate-pulse">
+        {isCalculatingRoi ? 'Calculating ROI...' : 'Syncing Terminal...'}
+      </p>
+      <p className="text-gray-600 font-mono text-[10px] uppercase tracking-wider mt-2">
+        Processing active investments
+      </p>
     </div>
   );
 
@@ -78,19 +99,16 @@ const Dashboard = () => {
         .ticker-wrapper { height: 35px !important; overflow: hidden; }
       `}</style>
 
-      {/* NEW: TEMPORAL SLIDE NOTIFICATION */}
       {terminalMsg && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-nirshux-accent text-black px-6 py-2 font-mono text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-300">
           ⚡ {terminalMsg}
         </div>
       )}
       
-      {/* 1. TICKER TAPE */}
       <div className="fixed top-0 left-0 w-full z-[170] border-b border-white/5 bg-[#0B0E11] ticker-wrapper">
         <TickerTape colorTheme="dark" symbols={[{proName: "BINANCE:BTCUSDT", title: "BTC"}, {proName: "BINANCE:ETHUSDT", title: "ETH"}]} />
       </div>
 
-      {/* 2. NAV */}
       <nav className="fixed top-[35px] left-0 w-full flex justify-between items-center px-4 md:px-10 bg-[#0B0E11]/95 backdrop-blur-md z-[165] border-b border-white/5 h-[60px] md:h-[70px]">
         <div className="flex items-center gap-4">
           <button 
@@ -147,7 +165,6 @@ const Dashboard = () => {
 
         <main className="flex-1 px-4 md:px-8 pt-[115px] md:pt-[140px] xl:ml-64 max-w-[1600px] mx-auto pb-24 transition-all">
           
-          {/* VIEW: OVERSIGHT */}
           {view === 'oversight' && (
             <div className="animate-in fade-in duration-500">
               <header className="mb-8 md:mb-12 relative z-10">
@@ -168,7 +185,6 @@ const Dashboard = () => {
                 <div className="space-y-6">
                    <GrowthCircle totalInvested={userData.totalInvested || 0} totalEarned={userData.totalEarned || 0} />
                    
-                   {/* --- RESTORED REFERRAL LINK BOX --- */}
                    <div className="bg-white/5 border border-white/10 p-6 rounded-3xl mb-6">
                     <h3 className="font-bold mb-3 uppercase text-[10px] tracking-widest italic text-gray-400">Your Referral Protocol</h3>
                     <div className="flex items-center gap-2 bg-black/40 p-3 rounded-xl border border-white/5">
@@ -180,7 +196,7 @@ const Dashboard = () => {
                       <button 
                         onClick={() => {
                           navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${userData.referralId}`);
-                          triggerNotification("LINK_SECURED_TO_CLIPBOARD"); // Replaced alert
+                          triggerNotification("LINK_SECURED_TO_CLIPBOARD");
                         }}
                         className="text-[10px] font-black hover:text-nirshux-accent transition-colors uppercase italic"
                       >
@@ -206,7 +222,6 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* VIEW: ACTIVE PLANS */}
           {view === 'active' && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
               <header className="mb-8 md:mb-12 relative z-10">
@@ -221,14 +236,12 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* VIEW: FORENSIC HISTORY */}
           {view === 'history' && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
               <History />
             </div>
           )}
 
-          {/* VIEW: PROFILE */}
           {view === 'profile' && (
             <ProfileView 
               userData={userData} 
@@ -237,7 +250,6 @@ const Dashboard = () => {
             />  
           )}
 
-          {/* VIEW: REFERRALS */}
           {view === 'referrals' && (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
                <div className="w-12 h-12 border-2 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin mb-4"></div>
@@ -248,7 +260,6 @@ const Dashboard = () => {
         </main>
       </div>
 
-      {/* MODAL OVERLAYS */}
       <InvestmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} refreshData={fetchDashboardData} />
       <DepositModal isOpen={isDepositOpen} onClose={() => setIsDepositOpen(false)} refreshData={fetchDashboardData} />
       <WithdrawalModal 
@@ -257,7 +268,7 @@ const Dashboard = () => {
         user={userData} 
         onRefresh={() => {
            fetchDashboardData();
-           triggerNotification("WITHDRAWAL_PROTOCOL_STAGED"); // Logic notification
+           triggerNotification("WITHDRAWAL_PROTOCOL_STAGED");
         }} 
       />
     </div>

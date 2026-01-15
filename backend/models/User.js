@@ -19,12 +19,15 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 
-  // --- NEW: FIRST INVESTMENT TRACKER ---
+  // --- FIRST INVESTMENT TRACKER ---
   hasMadeFirstInvestment: { type: Boolean, default: false },
 
   // --- PASSWORD RESET FIELDS ---
   resetPasswordToken: { type: String },
   resetPasswordExpire: { type: Date },
+
+  // --- LOGIN-TRIGGERED ROI CALCULATION ---
+  lastRoiCalculation: { type: Date, default: Date.now },
 
   // --- REAL ARRAY FOR TRANSACTIONS ---
   transactions: [{
@@ -39,6 +42,7 @@ const userSchema = new mongoose.Schema({
     startDate: { type: Date, default: Date.now },
     endDate: Date, 
     lastPayout: { type: Date, default: Date.now },
+    accrued: { type: Number, default: 0 },
     status: { type: String, default: 'active' } 
   }]
 }, { 

@@ -19,7 +19,95 @@ const supabase = createClient(
   }
 );
 
-// --- 1. PROFILE ROUTE ---
+// --- SECURE ROI CALCULATION FUNCTION ---
+const calculateRoi = async (user) => {
+  const now = new Date();
+  const lastCalc = new Date(user.lastRoiCalculation || user.createdAt);
+  const daysElapsed = Math.floor((now - lastCalc) / (1000 * 60 * 60 * 24));
+
+  if (daysElapsed === 0) return; // No days passed, skip calculation
+
+  let needsUpdate = false;
+  let totalReleased = 0;
+
+  for (let inv of user.activeInvestments) {
+    if (inv.status !== 'active') continue;
+
+    const planStartDate = new Date(inv.startDate);
+    const planEndDate = new Date(inv.endDate);
+    const dailyProfit = inv.amount * (inv.dailyRoi / 100);
+
+    // CRITICAL FIX: Check maturity FIRST to determine calculation strategy
+    const isPlanMatured = now >= planEndDate;
+    
+    // IF-ELSE STRUCTURE FOR SECURE CALCULATION
+    if (isPlanMatured) {
+      // MATURE PLAN: Calculate from lastCalc to maturity date ONLY
+      const daysToMaturity = Math.floor((planEndDate - lastCalc) / (1000 * 60 * 60 * 24));
+      const safeDaysToAccrue = Math.max(0, daysToMaturity);
+
+      if (safeDaysToAccrue > 0) {
+        const profitToAdd = dailyProfit * safeDaysToAccrue;
+        inv.accrued = (inv.accrued || 0) + profitToAdd;
+        inv.lastPayout = planEndDate; // Set to maturity date
+        needsUpdate = true;
+
+        console.log(`📈 ${user.email}: ${inv.planName} [MATURED] → +${profitToAdd.toFixed(2)} (${safeDaysToAccrue} days × ${dailyProfit.toFixed(2)}/day) | Total Accrued: ${inv.accrued.toFixed(2)}`);
+      }
+
+      // NOW process the maturity release
+      // NOW process the maturity release
+      const totalRelease = inv.amount + inv.accrued;
+
+      // MATURITY PROTOCOL
+      user.balance += totalRelease;
+      user.totalEarned += inv.accrued;
+      totalReleased += totalRelease;
+
+      // Log maturity transaction
+      const releaseTrx = new Transaction({
+        user: user._id,
+        type: 'maturity_release',
+        amount: totalRelease,
+        coin: `USD (${inv.planName} Matured)`,
+        network: 'Nirshux Protocol',
+        status: 'success'
+      });
+      await releaseTrx.save();
+      user.transactions.push(releaseTrx._id);
+
+      inv.status = 'completed';
+      console.log(`💰 ${user.email}: ${inv.planName} MATURED → Released ${totalRelease.toFixed(2)} (Principal: ${inv.amount}, Profit: ${inv.accrued.toFixed(2)})`);
+      
+    } else {
+      // ACTIVE PLAN: Calculate from lastCalc to NOW
+      const daysToAccrue = Math.floor((now - lastCalc) / (1000 * 60 * 60 * 24));
+      const safeDaysToAccrue = Math.max(0, daysToAccrue);
+
+      if (safeDaysToAccrue > 0) {
+        const profitToAdd = dailyProfit * safeDaysToAccrue;
+        inv.accrued = (inv.accrued || 0) + profitToAdd;
+        inv.lastPayout = now; // Set to current time
+        needsUpdate = true;
+
+        console.log(`📈 ${user.email}: ${inv.planName} [ACTIVE] → +${profitToAdd.toFixed(2)} (${safeDaysToAccrue} days × ${dailyProfit.toFixed(2)}/day) | Total Accrued: ${inv.accrued.toFixed(2)}`);
+      }
+    }
+  }
+
+  if (needsUpdate) {
+    // Remove completed plans
+    user.activeInvestments = user.activeInvestments.filter(inv => inv.status === 'active');
+    user.lastRoiCalculation = now;
+    await user.save();
+
+    if (totalReleased > 0) {
+      console.log(`✅ ${user.email}: Maturity Protocol Complete → $${totalReleased.toFixed(2)} sent to balance`);
+    }
+  }
+};
+
+// --- 1. PROFILE ROUTE (WITH ROI CALCULATION) ---
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
@@ -30,7 +118,19 @@ router.get('/profile', authMiddleware, async (req, res) => {
       });
     
     if (!user) return res.status(404).json({ msg: "User profile not found" });
-    res.json(user);
+
+    // CALCULATE ROI BEFORE RETURNING DATA
+    await calculateRoi(user);
+
+    // Reload user after ROI calculation
+    const updatedUser = await User.findById(req.user.id)
+      .select('-password')
+      .populate({
+        path: 'transactions',
+        options: { sort: { date: -1 } }
+      });
+
+    res.json(updatedUser);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error fetching profile");
@@ -129,6 +229,7 @@ router.post('/invest', authMiddleware, async (req, res) => {
       startDate: new Date(),
       endDate,
       lastPayout: new Date(),
+      accrued: 0,
       status: 'active'
     });
 
@@ -210,15 +311,13 @@ router.post('/request-email-update', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: "IDENTIFICATION_MISMATCH" });
     }
 
-    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetPasswordToken = otp;
-    user.resetPasswordExpire = Date.now() + 600000; // 10 minutes
+    user.resetPasswordExpire = Date.now() + 600000;
     await user.save();
 
-    console.log(`Email change OTP for ${oldEmail}: ${otp}`); // Debug log
+    console.log(`Email change OTP for ${oldEmail}: ${otp}`);
 
-    // Send email
     try {
       const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
@@ -227,7 +326,7 @@ router.post('/request-email-update', authMiddleware, async (req, res) => {
         secure: false,
         auth: {
           user: 'nirshuxcom@gmail.com',
-          pass: process.env.GMAIL_APP_PASSWORD // Your app password (without spaces)
+          pass: process.env.GMAIL_APP_PASSWORD
         }
       });
 
@@ -288,7 +387,6 @@ router.put('/confirm-email-update', authMiddleware, async (req, res) => {
     const { code, newEmail } = req.body;
     const user = await User.findById(req.user.id);
 
-    // Verify code again
     if (!user.resetPasswordToken || user.resetPasswordToken !== code.trim()) {
       return res.status(400).json({ msg: "INVALID_OR_EXPIRED_CODE" });
     }
@@ -297,13 +395,11 @@ router.put('/confirm-email-update', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: "CODE_EXPIRED" });
     }
 
-    // Check if new email already exists
     const existingUser = await User.findOne({ email: newEmail.toLowerCase() });
     if (existingUser && existingUser._id.toString() !== user._id.toString()) {
       return res.status(400).json({ msg: "EMAIL_ALREADY_IN_USE" });
     }
 
-    // Update email
     user.email = newEmail.toLowerCase();
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
