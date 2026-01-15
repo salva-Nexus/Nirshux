@@ -29,8 +29,8 @@ const ProfileView = ({ userData, onRefresh, triggerNotification }) => {
   const handleUpdateName = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      await API.put('/api/investor/update-name', { fullName: newName }, { headers: { 'x-auth-token': token } });
+      // ✅ FIXED: Removed manual token header - API interceptor handles it
+      await API.put('/api/investor/update-name', { fullName: newName });
       
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       const updatedUser = { ...currentUser, fullName: newName };
@@ -46,17 +46,14 @@ const ProfileView = ({ userData, onRefresh, triggerNotification }) => {
     }
   };
 
-const requestEmailCode = async () => {
-    // FIXED: No longer checking for newEmail here. 
-    // We only need the current one to send the security code.
+  const requestEmailCode = async () => {
     if (!formData.oldEmail) return triggerNotification("ENTER_CURRENT_EMAIL");
     
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      // ✅ FIXED: Removed manual token header - API interceptor handles it
       await API.post('/api/investor/request-email-update', 
-        { oldEmail: formData.oldEmail }, // Only sending old email
-        { headers: { 'x-auth-token': token } }
+        { oldEmail: formData.oldEmail }
       );
       setStep(2); 
       triggerNotification("CODE_DISPATCHED_TO_CURRENT_MAIL");
@@ -65,16 +62,14 @@ const requestEmailCode = async () => {
     } finally {
       setLoading(false);
     }
-};
+  };
 
   const verifyEmailCode = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      // Step 2: Check if code is valid before asking for new email
+      // ✅ FIXED: Removed manual token header - API interceptor handles it
       await API.post('/api/investor/verify-update-code', 
-        { code: formData.code }, 
-        { headers: { 'x-auth-token': token } }
+        { code: formData.code }
       );
       setStep(3);
       triggerNotification("SECURITY_CLEARED_PROCEED");
@@ -89,10 +84,9 @@ const requestEmailCode = async () => {
     if (!formData.newEmail) return triggerNotification("ENTER_NEW_EMAIL");
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      // ✅ FIXED: Removed manual token header - API interceptor handles it
       await API.put('/api/investor/confirm-email-update', 
-        { code: formData.code, newEmail: formData.newEmail }, 
-        { headers: { 'x-auth-token': token } }
+        { code: formData.code, newEmail: formData.newEmail }
       );
 
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
