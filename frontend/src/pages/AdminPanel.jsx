@@ -12,9 +12,9 @@ const AdminPanel = () => {
   
   const [adjustingUser, setAdjustingUser] = useState(null); 
   const [adjAmount, setAdjAmount] = useState('');
-
-  // ✅ NO LONGER NEEDED: API_BASE and getHeader
-  // The token is now handled automatically by the interceptor in api.js
+  
+  // NEW: State to track which user is currently flagged for purging
+  const [purgingUser, setPurgingUser] = useState(null);
 
   const showToast = (msg, type = 'info') => {
     setToast({ show: true, msg, type });
@@ -24,7 +24,6 @@ const AdminPanel = () => {
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsSyncing(true);
     try {
-      // ✅ CHANGED: Using API instead of axios and shortening URLs
       const [depRes, withRes, userRes, wallRes] = await Promise.all([
         API.get('/api/admin/pending-deposits'),
         API.get('/api/admin/pending-withdrawals'),
@@ -53,7 +52,6 @@ const AdminPanel = () => {
     if (!adjAmount || isNaN(amountNum)) return showToast("INVALID_INPUT", "error");
     const finalVal = mode === 'sub' ? -Math.abs(amountNum) : Math.abs(amountNum);
     try {
-      // ✅ CHANGED: axios.put -> API.put
       await API.put(`/api/admin/user/adjust-balance/${userId}`, { amount: finalVal });
       showToast("LIQUIDITY_MUTATED", "success");
       setAdjustingUser(null);
@@ -98,11 +96,12 @@ const AdminPanel = () => {
     } catch (err) { showToast("REVOCATION_FAILED", "error"); }
   };
 
-  const wipeUser = async (id) => {
-    if(!window.confirm("PERMANENTLY PURGE SUBJECT?")) return;
+  // ✅ REWRITTEN: No window.confirm. Executes immediately when the inline 'CONFIRM PURGE' is clicked.
+  const executeWipe = async (id) => {
     try {
       await API.delete(`/api/admin/user/${id}`);
       showToast("USER_PURGED", "success");
+      setPurgingUser(null);
       fetchData();
     } catch (err) { showToast("PURGE_FAILED", "error"); }
   };
@@ -155,7 +154,7 @@ const AdminPanel = () => {
         </div>
       </section>
 
-      {/* NEW SECTION: WITHDRAWAL REQUESTS */}
+      {/* SECTION: WITHDRAWAL REQUESTS */}
       <section className="mb-12">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-400 mb-4 ml-2 italic underline underline-offset-4">Outgoing Payouts</h3>
         <div className="bg-[#161A1E] border border-white/5 rounded-3xl overflow-hidden shadow-2xl overflow-x-auto">
@@ -192,6 +191,7 @@ const AdminPanel = () => {
         </div>
       </section>
 
+      {/* SECTION: HUMAN RESOURCES REGISTRY */}
       <section className="mb-12">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 ml-2">Human Resources Registry</h3>
         <div className="bg-[#161A1E] border border-white/5 rounded-3xl overflow-hidden shadow-2xl overflow-x-auto">
@@ -222,7 +222,16 @@ const AdminPanel = () => {
                        )}
                     </td>
                     <td className="p-6 text-right">
-                      <button onClick={() => wipeUser(u._id)} className="text-red-500/40 hover:text-red-500 text-[10px] font-black uppercase tracking-tighter">Wipe_Subject</button>
+                      {/* ✅ REWRITTEN CLEARANCE COLUMN: Swaps to a confirmation UI when clicked */}
+                      {purgingUser === u._id ? (
+                        <div className="flex items-center justify-end gap-3 animate-in fade-in slide-in-from-right-2 duration-200">
+                          <span className="text-[8px] font-bold text-red-500 animate-pulse uppercase tracking-tighter">PERMANENT_PURGE?</span>
+                          <button onClick={() => executeWipe(u._id)} className="bg-red-500 text-white text-[8px] font-black px-3 py-1.5 rounded uppercase hover:bg-red-600 transition-colors">Confirm</button>
+                          <button onClick={() => setPurgingUser(null)} className="text-gray-500 hover:text-white text-[8px] font-black uppercase">Cancel</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setPurgingUser(u._id)} className="text-red-500/40 hover:text-red-500 text-[10px] font-black uppercase tracking-tighter transition-colors">Wipe_Subject</button>
+                      )}
                     </td>
                   </tr>
                 ))}
