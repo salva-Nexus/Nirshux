@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 
 const CoinChart = () => {
-  const [symbol, setSymbol] = useState("BTCUSD");
+  // Added "BINANCE:" prefix to ensure data loads correctly
+  const [symbol, setSymbol] = useState("BINANCE:BTCUSDT");
 
   const coins = [
-    { name: "Bitcoin", id: "BTCUSD" },
-    { name: "Ethereum", id: "ETHUSD" },
-    { name: "Solana", id: "SOLUSD" },
-    { name: "Cardano", id: "ADAUSD" },
+    { name: "Bitcoin", id: "BINANCE:BTCUSDT" },
+    { name: "Ethereum", id: "BINANCE:ETHUSDT" },
+    { name: "Solana", id: "BINANCE:SOLUSDT" },
+    { name: "Cardano", id: "BINANCE:ADAUSDT" },
   ];
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">
+        {/* Style matched to NIRSHUX heading: bold, tracking-tight, uppercase */}
+        <h3 className="text-lg md:text-xl font-bold text-white tracking-tight uppercase">
           Market <span className="text-nirshux-accent">Terminal</span>
         </h3>
         
@@ -30,13 +32,16 @@ const CoinChart = () => {
 
       <div className="h-[400px] rounded-xl overflow-hidden border border-white/5">
         <AdvancedRealTimeChart 
-          key={symbol} // FORCES RE-LOAD WHEN SYMBOL CHANGES
+          key={symbol} 
           theme="dark" 
           symbol={symbol} 
           autosize
           hide_side_toolbar={true}
           allow_symbol_change={false}
-          container_id={`tv_chart_${symbol}`} // UNIQUE ID
+          container_id="tradingview_chart_container"
+          style="1" // Standard candlestick chart
+          interval="D"
+          timezone="Etc/UTC"
         />
       </div>
     </div>

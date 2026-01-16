@@ -79,7 +79,7 @@ const Testimonials = () => {
   return (
     <section className="bg-nirshux-dark py-24 overflow-hidden">
       <div className="container mx-auto px-6 mb-16 text-center">
-        <h2 className="text-4xl md:text-5xl font-bold mb-4">Trusted by Traders</h2>
+        <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">Trusted by Traders</h2>
         <p className="text-gray-400">Join thousands of satisfied traders on Nirshux.</p>
       </div>
 
