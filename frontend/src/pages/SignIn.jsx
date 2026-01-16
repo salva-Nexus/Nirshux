@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import API from '../api';
 
 const SignIn = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [status, setStatus] = useState({ type: '', msg: '' }); // Inline feedback state
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const { email, password } = formData;
@@ -107,15 +109,24 @@ const SignIn = () => {
                   Forgot password?
                 </Link>
               </div>
-              <input 
-                type="password"
-                name="password"
-                value={password}
-                onChange={onChange}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-nirshux-accent outline-none transition-all placeholder:text-gray-600"
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white focus:border-nirshux-accent outline-none transition-all placeholder:text-gray-600"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-nirshux-accent transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             <button 
