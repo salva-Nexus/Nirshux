@@ -27,6 +27,7 @@ const Dashboard = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [terminalMsg, setTerminalMsg] = useState("");
   const [isCalculatingRoi, setIsCalculatingRoi] = useState(true);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
@@ -60,10 +61,15 @@ const Dashboard = () => {
     setIsCalculatingRoi(true);
 
     try {
-      const res = await API.get('/api/investor/profile', {
-        headers: { 'x-auth-token': token }
-      });
+      const res = await API.get('/api/investor/profile');
       setUserData(res.data);
+      
+      // Check if first visit
+      const hasVisitedBefore = localStorage.getItem('hasVisited');
+      if (!hasVisitedBefore) {
+        setIsFirstVisit(true);
+        localStorage.setItem('hasVisited', 'true');
+      }
     } catch (err) {
       if (err.response?.status === 401) navigate('/signin');
     } finally {
@@ -77,20 +83,22 @@ const Dashboard = () => {
 
   if (isCalculatingRoi || !userData) return (
     <div className="min-h-screen bg-[#0B0E11] flex flex-col items-center justify-center">
-      <div className="relative mb-8">
-        <div className="w-20 h-20 border-4 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin"></div>
+      <div className="relative mb-6">
+        <div className="w-16 h-16 border-4 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin"></div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-nirshux-accent/30 border-b-nirshux-accent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }}></div>
+          <div className="w-10 h-10 border-4 border-nirshux-accent/30 border-b-nirshux-accent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }}></div>
         </div>
       </div>
-      <p className="text-nirshux-accent font-mono uppercase tracking-[0.3em] text-sm font-black animate-pulse">
-        {isCalculatingRoi ? 'LOADING...' : 'Syncing Terminal...'}
+      <p className="text-nirshux-accent font-mono uppercase tracking-wide text-xs font-bold animate-pulse">
+        {isCalculatingRoi ? 'LOADING...' : 'Syncing...'}
       </p>
       <p className="text-gray-600 font-mono text-[10px] uppercase tracking-wider mt-2">
         Please Wait...
       </p>
     </div>
   );
+
+  const firstName = userData.fullName?.split(' ')[0] || 'User';
 
   return (
     <div className="bg-[#0B0E11] min-h-screen text-white overflow-x-hidden relative">
@@ -100,7 +108,7 @@ const Dashboard = () => {
       `}</style>
 
       {terminalMsg && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-nirshux-accent text-black px-6 py-2 font-mono text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] bg-nirshux-accent text-black px-5 py-2 font-mono text-[9px] font-bold uppercase tracking-wide animate-in fade-in slide-in-from-top-4 duration-300">
           ⚡ {terminalMsg}
         </div>
       )}
@@ -109,7 +117,7 @@ const Dashboard = () => {
         <TickerTape colorTheme="dark" symbols={[{proName: "BINANCE:BTCUSDT", title: "BTC"}, {proName: "BINANCE:ETHUSDT", title: "ETH"}]} />
       </div>
 
-      <nav className="fixed top-[35px] left-0 w-full flex justify-between items-center px-4 md:px-10 bg-[#0B0E11]/95 backdrop-blur-md z-[165] border-b border-white/5 h-[60px] md:h-[70px]">
+      <nav className="fixed top-[35px] left-0 w-full flex justify-between items-center px-4 md:px-10 bg-[#0B0E11]/95 backdrop-blur-md z-[165] border-b border-white/5 h-[55px] md:h-[60px]">
         <div className="flex items-center gap-4">
           <button 
             onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}
@@ -119,7 +127,7 @@ const Dashboard = () => {
             <div className="w-5 h-[1.5px] bg-nirshux-accent mb-1"></div>
             <div className="w-3 h-[1.5px] bg-nirshux-accent"></div>
           </button>
-          <div className="text-lg md:text-2xl font-black text-nirshux-accent tracking-tighter uppercase italic">Nirshux</div>
+          <div className="text-lg md:text-xl font-bold text-nirshux-accent tracking-tight uppercase">Nirshux</div>
         </div>
         
         <div className="relative" ref={dropdownRef}>
@@ -132,22 +140,22 @@ const Dashboard = () => {
             </div>
             <div className="hidden sm:block text-left leading-tight">
               <p className="text-[10px] md:text-xs font-bold truncate max-w-[120px]">{userData.fullName}</p>
-              <p className="text-[9px] text-gray-500 uppercase tracking-tighter">{userData.role}</p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-tight">{userData.role}</p>
             </div>
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-3 w-64 bg-[#161A1E] border border-white/10 rounded-2xl shadow-2xl p-2 z-[170] animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 mt-3 w-60 bg-[#161A1E] border border-white/10 rounded-2xl shadow-2xl p-2 z-[170] animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="p-4 border-b border-white/5 mb-2">
-                  <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">Available Balance</p>
-                  <p className="text-xl font-mono text-nirshux-accent">${userData.balance?.toLocaleString() || '0.00'}</p>
+                  <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide mb-1">Available Balance</p>
+                  <p className="text-lg font-mono text-nirshux-accent">${userData.balance?.toLocaleString() || '0.00'}</p>
                 </div>
                 {userData.role === 'admin' && (
-                  <button onClick={() => navigate('/admin-panel')} className="w-full text-left p-3 text-nirshux-accent bg-nirshux-accent/10 rounded-xl text-sm font-black mb-2 hover:bg-nirshux-accent/20 transition-all uppercase italic flex items-center gap-2">
+                  <button onClick={() => navigate('/admin-panel')} className="w-full text-left p-3 text-nirshux-accent bg-nirshux-accent/10 rounded-xl text-xs font-bold mb-2 hover:bg-nirshux-accent/20 transition-all uppercase flex items-center gap-2">
                     ⚡ Admin Terminal
                   </button>
                 )}
-                <button onClick={handleLogout} className="w-full text-left p-3 text-red-400 hover:bg-red-400/10 rounded-xl text-sm transition-all font-bold">Sign Out</button>
+                <button onClick={handleLogout} className="w-full text-left p-3 text-red-400 hover:bg-red-400/10 rounded-xl text-xs transition-all font-bold">Sign Out</button>
             </div>
           )}
         </div>
@@ -163,60 +171,60 @@ const Dashboard = () => {
           setView={setView} 
         />
 
-        <main className="flex-1 px-4 md:px-8 pt-[115px] md:pt-[140px] xl:ml-64 max-w-[1600px] mx-auto pb-24 transition-all">
+        <main className="flex-1 px-4 md:px-8 pt-[100px] md:pt-[120px] xl:ml-64 max-w-[1600px] mx-auto pb-24 transition-all">
           
           {view === 'oversight' && (
             <div className="animate-in fade-in duration-500">
-              <header className="mb-8 md:mb-12 relative z-10">
-                <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic leading-none">
-                  TERMINAL <span className="text-nirshux-accent">OVERSIGHT</span>
+              <header className="mb-6 md:mb-8 relative z-10">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase leading-none">
+                  {isFirstVisit ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
                 </h1>
-                <p className="text-gray-500 mt-2 text-[9px] md:text-xs font-mono tracking-widest uppercase">
-                  System Status: <span className="text-green-500 font-black">Operational</span>
+                <p className="text-gray-500 mt-1.5 text-[9px] md:text-[10px] font-mono tracking-wide uppercase">
+                  System Status: <span className="text-green-500 font-bold">Operational</span>
                 </p>
               </header>
 
               <StatsGrid userData={userData} />
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-8">
                 <div className="lg:col-span-2 xl:col-span-3">
                    <CoinChart />
                 </div>
-                <div className="space-y-6">
+                <div className="space-y-5">
                    <GrowthCircle totalInvested={userData.totalInvested || 0} totalEarned={userData.totalEarned || 0} />
                    
-                   <div className="bg-white/5 border border-white/10 p-6 rounded-3xl mb-6">
-                    <h3 className="font-bold mb-3 uppercase text-[10px] tracking-widest italic text-gray-400">Your Referral Protocol</h3>
+                   <div className="bg-white/5 border border-white/10 p-5 rounded-3xl">
+                    <h3 className="font-bold mb-3 uppercase text-[9px] tracking-wide text-gray-400">Your Referral Link</h3>
                     <div className="flex items-center gap-2 bg-black/40 p-3 rounded-xl border border-white/5">
                       <input 
                         readOnly 
                         value={`${window.location.origin}/signup?ref=${userData.referralId}`}
-                        className="bg-transparent text-[10px] font-mono text-nirshux-accent outline-none w-full"
+                        className="bg-transparent text-[9px] font-mono text-nirshux-accent outline-none w-full"
                       />
                       <button 
                         onClick={() => {
                           navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${userData.referralId}`);
-                          triggerNotification("LINK_SECURED_TO_CLIPBOARD");
+                          triggerNotification("LINK COPIED");
                         }}
-                        className="text-[10px] font-black hover:text-nirshux-accent transition-colors uppercase italic"
+                        className="text-[9px] font-bold hover:text-nirshux-accent transition-colors uppercase"
                       >
                         Copy
                       </button>
                     </div>
-                    <p className="text-[9px] text-gray-500 mt-3 leading-tight uppercase font-mono">
-                      Earn commissions on all network transmissions from invited terminals.
+                    <p className="text-[8px] text-gray-500 mt-2.5 leading-tight uppercase font-mono">
+                      Earn commissions on referrals.
                     </p>
                   </div>
 
-                   <div className="bg-white/5 border border-white/10 p-6 rounded-3xl text-center">
-                      <h3 className="font-bold mb-3 uppercase text-xs tracking-widest italic text-gray-400 text-left">Action Center</h3>
-                      <button onClick={() => setIsModalOpen(true)} className="w-full py-4 bg-nirshux-accent text-black font-black rounded-2xl hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">Deploy Capital</button>
+                   <div className="bg-white/5 border border-white/10 p-5 rounded-3xl text-center">
+                      <h3 className="font-bold mb-3 uppercase text-[10px] tracking-wide text-gray-400 text-left">Action Center</h3>
+                      <button onClick={() => setIsModalOpen(true)} className="w-full py-3.5 bg-nirshux-accent text-black font-bold rounded-2xl hover:scale-[1.02] transition-all uppercase tracking-wide text-xs">Deploy Capital</button>
                    </div>
                 </div>
               </div>
 
-              <div className="mt-12 bg-white/5 border border-white/10 rounded-3xl p-4 md:p-8 overflow-hidden">
-                 <h3 className="text-xl font-black mb-6 uppercase italic">Recent Transmissions</h3>
+              <div className="mt-10 bg-white/5 border border-white/10 rounded-3xl p-4 md:p-6 overflow-hidden">
+                 <h3 className="text-base font-bold mb-5 uppercase">Recent Transactions</h3>
                  <TransactionTable transactions={userData.transactions || []} limit={5} />
               </div>
             </div>
@@ -224,11 +232,11 @@ const Dashboard = () => {
 
           {view === 'active' && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
-              <header className="mb-8 md:mb-12 relative z-10">
-                <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic leading-none">
+              <header className="mb-6 md:mb-8 relative z-10">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase leading-none">
                   ACTIVE <span className="text-nirshux-accent">STAKES</span>
                 </h1>
-                <p className="text-gray-500 mt-2 text-[9px] md:text-xs font-mono tracking-widest uppercase">
+                <p className="text-gray-500 mt-1.5 text-[9px] md:text-[10px] font-mono tracking-wide uppercase">
                   Nirshux Engine // Protocol Live
                 </p>
               </header>
@@ -252,8 +260,8 @@ const Dashboard = () => {
 
           {view === 'referrals' && (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
-               <div className="w-12 h-12 border-2 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin mb-4"></div>
-               <p className="text-gray-500 font-mono text-[10px] uppercase tracking-[0.3em]">Referral Module Offline</p>
+               <div className="w-10 h-10 border-2 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin mb-3"></div>
+               <p className="text-gray-500 font-mono text-[9px] uppercase tracking-wide">Referral Module Offline</p>
             </div>
           )}
 
@@ -268,7 +276,7 @@ const Dashboard = () => {
         user={userData} 
         onRefresh={() => {
            fetchDashboardData();
-           triggerNotification("WITHDRAWAL_PROTOCOL_STAGED");
+           triggerNotification("WITHDRAWAL STAGED");
         }} 
       />
     </div>

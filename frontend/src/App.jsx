@@ -1,4 +1,4 @@
-//frontend
+//frontend/src/App.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import API from './api';
