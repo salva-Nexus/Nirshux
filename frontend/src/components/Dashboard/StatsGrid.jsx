@@ -16,7 +16,7 @@ const StatsGrid = ({ userData }) => {
           key={idx} 
           className="bg-[#161A1E] border border-white/5 p-6 rounded-xl flex flex-col items-center justify-center text-center shadow-sm"
         >
-          <p className="text-gray-400 text-[11px] font-medium uppercase tracking-wider mb-2">
+          <p className="text-white text-[11px] font-medium uppercase tracking-wider mb-2">
             {stat.label}
           </p>
           <p className="text-white text-xl font-bold">

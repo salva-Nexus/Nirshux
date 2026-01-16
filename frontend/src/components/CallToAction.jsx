@@ -8,7 +8,7 @@ const CallToAction = () => {
   return (
     <section className="bg-nirshux-dark py-32 px-6 border-t border-white/5">
       <div className="container mx-auto text-center max-w-3xl">
-        <h2 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
+        <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">
           Ready to start investing?
         </h2>
         <p className="text-gray-400 text-lg mb-12">
