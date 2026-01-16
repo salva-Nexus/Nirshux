@@ -64,7 +64,6 @@ const Dashboard = () => {
       const res = await API.get('/api/investor/profile');
       setUserData(res.data);
       
-      // Check if first visit
       const hasVisitedBefore = localStorage.getItem('hasVisited');
       if (!hasVisitedBefore) {
         setIsFirstVisit(true);
@@ -175,12 +174,13 @@ const Dashboard = () => {
           
           {view === 'oversight' && (
             <div className="animate-in fade-in duration-500">
-              <header className="mb-6 md:mb-8 relative z-10">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase leading-none">
+              {/* ✅ HEADER UPDATED BELOW */}
+              <header className="mb-6 relative z-10">
+                <h1 className="text-sm md:text-base font-medium text-gray-300">
                   {isFirstVisit ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
                 </h1>
-                <p className="text-gray-500 mt-1.5 text-[9px] md:text-[10px] font-mono tracking-wide uppercase">
-                  System Status: <span className="text-green-500 font-bold">Operational</span>
+                <p className="text-gray-600 mt-1 text-[10px] uppercase tracking-tight">
+                  Here's a look at your performance and analytics.
                 </p>
               </header>
 
