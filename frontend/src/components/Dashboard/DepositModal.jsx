@@ -83,7 +83,7 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
         {/* STEP 1: DEFINE CAPITAL */}
         {step === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-4">
-            <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter mb-1 text-white">Deposit <span className="text-nirshux-accent">Funds</span></h2>
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight uppercase">Deposit <span className="text-nirshux-accent">Funds</span></h2>
             <p className="text-gray-500 text-[9px] md:text-[11px] mb-6 md:mb-10 font-mono tracking-widest uppercase">Registry // Define Capital Input</p>
             
             <div className="relative mb-6">
@@ -119,7 +119,7 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
             <button onClick={() => setStep(1)} className="mb-4 md:mb-6 flex items-center gap-2 text-[10px] text-gray-500 uppercase font-black hover:text-nirshux-accent transition-colors font-mono tracking-widest">
               ← Back to Amount
             </button>
-            <h2 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter mb-6 md:mb-8 text-white">Select <span className="text-nirshux-accent">Gateway</span></h2>
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight uppercase">Select <span className="text-nirshux-accent">Gateway</span></h2>
             
             {error && (
               <div className="mb-6 bg-red-500/10 border border-red-500/30 p-4 rounded-2xl">
@@ -135,7 +135,7 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
               ) : wallets.length === 0 ? (
                 <div className="text-center py-16 border border-dashed border-red-500/20 rounded-3xl bg-red-500/5">
                   <p className="text-red-400 font-mono text-[10px] uppercase tracking-[0.3em] mb-2">No Gateways Available</p>
-                  <p className="text-gray-500 font-mono text-[9px]">Contact admin</p>
+                  <p className="text-gray-500 font-mono text-[9px]">Contact Support</p>
                 </div>
               ) : (
                 wallets.map(w => (
