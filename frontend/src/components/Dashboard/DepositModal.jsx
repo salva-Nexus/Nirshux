@@ -1,4 +1,4 @@
-// DepositModal.jsx
+// frontend/src/components/Dashboard/DepositModal.jsx
 import React, { useState, useEffect } from 'react';
 import API from '../../api';
 

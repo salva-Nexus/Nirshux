@@ -1,3 +1,4 @@
+// frontend/src/components/Dashboard/InvestmentModal.jsx
 import React, { useState } from 'react';
 import API from '../../api';
 

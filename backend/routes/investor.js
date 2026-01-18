@@ -30,6 +30,7 @@ const calculateRoi = async (user) => {
 
   let needsUpdate = false;
   let totalReleased = 0;
+  let totalNewAccrued = 0; // Track new accrued profits
 
   for (let inv of user.activeInvestments) {
     if (inv.status !== 'active') continue;
@@ -52,17 +53,16 @@ const calculateRoi = async (user) => {
         inv.accrued = (inv.accrued || 0) + profitToAdd;
         inv.lastPayout = planEndDate; // Set to maturity date
         needsUpdate = true;
+        totalNewAccrued += profitToAdd; // Add to total earned tracker
 
         console.log(`📈 ${user.email}: ${inv.planName} [MATURED] → +${profitToAdd.toFixed(2)} (${safeDaysToAccrue} days × ${dailyProfit.toFixed(2)}/day) | Total Accrued: ${inv.accrued.toFixed(2)}`);
       }
 
       // NOW process the maturity release
-      // NOW process the maturity release
       const totalRelease = inv.amount + inv.accrued;
 
-      // MATURITY PROTOCOL
+      // MATURITY PROTOCOL - Only add principal + accrued to balance (NO duplicate totalEarned update)
       user.balance += totalRelease;
-      user.totalEarned += inv.accrued;
       totalReleased += totalRelease;
 
       // Log maturity transaction
@@ -90,6 +90,7 @@ const calculateRoi = async (user) => {
         inv.accrued = (inv.accrued || 0) + profitToAdd;
         inv.lastPayout = now; // Set to current time
         needsUpdate = true;
+        totalNewAccrued += profitToAdd; // Add to total earned tracker
 
         console.log(`📈 ${user.email}: ${inv.planName} [ACTIVE] → +${profitToAdd.toFixed(2)} (${safeDaysToAccrue} days × ${dailyProfit.toFixed(2)}/day) | Total Accrued: ${inv.accrued.toFixed(2)}`);
       }
@@ -97,6 +98,9 @@ const calculateRoi = async (user) => {
   }
 
   if (needsUpdate) {
+    // UPDATE TOTAL EARNED WITH ALL NEW ACCRUED PROFITS
+    user.totalEarned += totalNewAccrued;
+    
     // Remove completed plans
     user.activeInvestments = user.activeInvestments.filter(inv => inv.status === 'active');
     user.lastRoiCalculation = now;
@@ -104,6 +108,9 @@ const calculateRoi = async (user) => {
 
     if (totalReleased > 0) {
       console.log(`✅ ${user.email}: Maturity Protocol Complete → $${totalReleased.toFixed(2)} sent to balance`);
+    }
+    if (totalNewAccrued > 0) {
+      console.log(`💎 ${user.email}: Total Earned Updated → +$${totalNewAccrued.toFixed(2)}`);
     }
   }
 };
@@ -224,34 +231,39 @@ router.post('/invest', authMiddleware, async (req, res) => {
     investor.balance -= investAmount;
     investor.totalInvested += investAmount;
 
-    if (!investor.hasMadeFirstInvestment) {
+    // PROMO PLAN BONUS: Only trigger $30 bonus if investing in PROMO PLAN for the first time
+    if (!investor.hasMadeFirstInvestment && planName === "PROMO PLAN") {
       investor.balance += 30;
+      console.log(`First investment bonus ($30) applied to ${investor.email} for PROMO PLAN`);
+    }
 
-      if (investor.referredBy) {
-        const referrer = await User.findOne({ referralId: investor.referredBy });
-        if (referrer) {
-          const rewardAmount = investAmount * 0.025;
-          referrer.balance += rewardAmount;
-          referrer.referralBalance += rewardAmount;
+    // REFERRAL BONUS: Always trigger on first investment (regardless of plan)
+    if (!investor.hasMadeFirstInvestment && investor.referredBy) {
+      const referrer = await User.findOne({ referralId: investor.referredBy });
+      if (referrer) {
+        const rewardAmount = investAmount * 0.025;
+        referrer.balance += rewardAmount;
+        referrer.referralBalance += rewardAmount;
 
-          const refTrx = new Transaction({
-            user: referrer._id,
-            type: 'referral_bonus',
-            amount: rewardAmount,
-            status: 'success',
-            coin: 'USD (Internal)',
-            network: `Bonus from ${investor.fullName}`,
-          });
-          const savedRefTrx = await refTrx.save();
-          referrer.transactions.push(savedRefTrx._id);
+        const refTrx = new Transaction({
+          user: referrer._id,
+          type: 'referral_bonus',
+          amount: rewardAmount,
+          status: 'success',
+          coin: 'USD (Internal)',
+          network: `Bonus from ${investor.fullName}`,
+        });
+        const savedRefTrx = await refTrx.save();
+        referrer.transactions.push(savedRefTrx._id);
 
-          await referrer.save();
-          console.log(`Referral reward of $${rewardAmount} sent to ${referrer.email}`);
-        }
+        await referrer.save();
+        console.log(`Referral reward of ${rewardAmount} sent to ${referrer.email}`);
       }
-      
+    }
+    
+    // Mark first investment as complete (regardless of which plan)
+    if (!investor.hasMadeFirstInvestment) {
       investor.hasMadeFirstInvestment = true;
-      console.log(`First investment bonus ($30) applied to ${investor.email}`);
     }
 
     const endDate = new Date();
