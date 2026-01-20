@@ -1,4 +1,4 @@
-// admin.js
+// backend/routes/admin.js
 const router = require('express').Router();
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
@@ -54,7 +54,29 @@ router.put('/user/adjust-balance/:id', [authMiddleware, adminOnly], async (req, 
   }
 });
 
-// admin.js -> Add this inside the --- USER OPERATIONS --- or --- WALLET --- section
+// @route   PUT api/admin/user/adjust-total-earned/:id
+// @desc    Manually adjust user's total earned stat
+router.put('/user/adjust-total-earned/:id', [authMiddleware, adminOnly], async (req, res) => {
+  try {
+    const { amount } = req.body; // Can be positive (add) or negative (subtract)
+    
+    if (isNaN(amount)) return res.status(400).json({ msg: "INVALID_AMOUNT" });
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ msg: "SUBJECT_NOT_FOUND" });
+
+    // Apply mutation
+    user.totalEarned += Number(amount);
+    
+    // Safety check: Don't let totalEarned go below zero
+    if (user.totalEarned < 0) user.totalEarned = 0;
+
+    await user.save();
+    res.json({ msg: "TOTAL_EARNED_ADJUSTED", newTotalEarned: user.totalEarned });
+  } catch (err) {
+    res.status(500).json({ msg: "MUTATION_FAILED" });
+  }
+});
 
 // GET ALL PENDING DEPOSITS
 router.get('/pending-deposits', [authMiddleware, adminOnly], async (req, res) => {

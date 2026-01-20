@@ -1,5 +1,6 @@
+// frontend/src/pages/AdminPanel.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import API from '../api'; // Import your custom axios instance
+import API from '../api';
 
 const AdminPanel = () => {
   const [pendingDeposits, setPendingDeposits] = useState([]);
@@ -13,7 +14,9 @@ const AdminPanel = () => {
   const [adjustingUser, setAdjustingUser] = useState(null); 
   const [adjAmount, setAdjAmount] = useState('');
   
-  // NEW: State to track which user is currently flagged for purging
+  const [adjustingEarnedUser, setAdjustingEarnedUser] = useState(null); 
+  const [adjEarnedAmount, setAdjEarnedAmount] = useState('');
+  
   const [purgingUser, setPurgingUser] = useState(null);
 
   const showToast = (msg, type = 'info') => {
@@ -60,6 +63,19 @@ const AdminPanel = () => {
     } catch (err) { showToast("MUTATION_FAILED", "error"); }
   };
 
+  const executeEarnedAdjustment = async (userId, mode) => {
+    const amountNum = parseFloat(adjEarnedAmount);
+    if (!adjEarnedAmount || isNaN(amountNum)) return showToast("INVALID_INPUT", "error");
+    const finalVal = mode === 'sub' ? -Math.abs(amountNum) : Math.abs(amountNum);
+    try {
+      await API.put(`/api/admin/user/adjust-total-earned/${userId}`, { amount: finalVal });
+      showToast("EARNINGS_MUTATED", "success");
+      setAdjustingEarnedUser(null);
+      setAdjEarnedAmount('');
+      fetchData(true);
+    } catch (err) { showToast("MUTATION_FAILED", "error"); }
+  };
+
   const handleDepositAction = async (id, action) => {
     try {
       const endpoint = action === 'approve' ? `/api/admin/deposit/approve/${id}` : `/api/admin/deposit/reject/${id}`;
@@ -96,7 +112,6 @@ const AdminPanel = () => {
     } catch (err) { showToast("REVOCATION_FAILED", "error"); }
   };
 
-  // ✅ REWRITTEN: No window.confirm. Executes immediately when the inline 'CONFIRM PURGE' is clicked.
   const executeWipe = async (id) => {
     try {
       await API.delete(`/api/admin/user/${id}`);
@@ -195,9 +210,14 @@ const AdminPanel = () => {
       <section className="mb-12">
         <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-4 ml-2">Human Resources Registry</h3>
         <div className="bg-[#161A1E] border border-white/5 rounded-3xl overflow-hidden shadow-2xl overflow-x-auto">
-            <table className="w-full text-left min-w-[600px]">
+            <table className="w-full text-left min-w-[900px]">
               <thead className="bg-white/[0.02] text-[9px] uppercase tracking-widest font-bold text-gray-500">
-                <tr><th className="p-6">Subject</th><th className="p-6 text-center">Liquidity Status</th><th className="p-6 text-right">Clearance</th></tr>
+                <tr>
+                  <th className="p-6">Subject</th>
+                  <th className="p-6 text-center">Balance</th>
+                  <th className="p-6 text-center">Total Earned</th>
+                  <th className="p-6 text-right">Clearance</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {users.map(u => (
@@ -206,6 +226,8 @@ const AdminPanel = () => {
                       <p className="font-bold text-sm uppercase">{u.fullName}</p>
                       <p className="text-[9px] font-mono text-gray-500 lowercase">{u.email}</p>
                     </td>
+                    
+                    {/* BALANCE COLUMN */}
                     <td className="p-6 text-center">
                        {adjustingUser === u._id ? (
                          <div className="flex items-center justify-center gap-2 animate-in zoom-in-95 duration-200">
@@ -217,12 +239,30 @@ const AdminPanel = () => {
                        ) : (
                          <div className="flex flex-col items-center">
                             <span className="text-nirshux-accent text-sm font-bold block font-mono">${u.balance?.toLocaleString()}</span>
-                            <button onClick={() => { setAdjustingUser(u._id); setAdjAmount(''); }} className="text-[8px] font-black text-gray-600 hover:text-white uppercase tracking-tighter mt-1 underline decoration-nirshux-accent/20"> [ Initiate_Mutation ] </button>
+                            <button onClick={() => { setAdjustingUser(u._id); setAdjAmount(''); }} className="text-[8px] font-black text-gray-600 hover:text-white uppercase tracking-tighter mt-1 underline decoration-nirshux-accent/20">[ Mutate_Balance ]</button>
                          </div>
                        )}
                     </td>
+
+                    {/* TOTAL EARNED COLUMN */}
+                    <td className="p-6 text-center">
+                       {adjustingEarnedUser === u._id ? (
+                         <div className="flex items-center justify-center gap-2 animate-in zoom-in-95 duration-200">
+                            <input autoFocus type="number" placeholder="0.00" value={adjEarnedAmount} onChange={(e) => setAdjEarnedAmount(e.target.value)} className="w-24 bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono text-green-400 outline-none focus:border-green-400" />
+                            <button onClick={() => executeEarnedAdjustment(u._id, 'add')} className="bg-green-500 text-black text-[8px] font-black px-2 py-1 rounded uppercase">Add</button>
+                            <button onClick={() => executeEarnedAdjustment(u._id, 'sub')} className="bg-red-500 text-white text-[8px] font-black px-2 py-1 rounded uppercase">Sub</button>
+                            <button onClick={() => setAdjustingEarnedUser(null)} className="text-gray-500 hover:text-white ml-1 font-bold">×</button>
+                         </div>
+                       ) : (
+                         <div className="flex flex-col items-center">
+                            <span className="text-green-400 text-sm font-bold block font-mono">${u.totalEarned?.toLocaleString()}</span>
+                            <button onClick={() => { setAdjustingEarnedUser(u._id); setAdjEarnedAmount(''); }} className="text-[8px] font-black text-gray-600 hover:text-white uppercase tracking-tighter mt-1 underline decoration-green-400/20">[ Mutate_Earned ]</button>
+                         </div>
+                       )}
+                    </td>
+
+                    {/* CLEARANCE COLUMN */}
                     <td className="p-6 text-right">
-                      {/* ✅ REWRITTEN CLEARANCE COLUMN: Swaps to a confirmation UI when clicked */}
                       {purgingUser === u._id ? (
                         <div className="flex items-center justify-end gap-3 animate-in fade-in slide-in-from-right-2 duration-200">
                           <span className="text-[8px] font-bold text-red-500 animate-pulse uppercase tracking-tighter">PERMANENT_PURGE?</span>
