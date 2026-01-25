@@ -7,17 +7,18 @@ const Footer = () => {
 
   return (
     <footer className="bg-nirshux-dark border-t border-white/5 pt-16 pb-8">
-      <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
+      {/* Increased max-width for a wider layout */}
+      <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
         <div>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <img 
               src="/Nirshus-Logo.png" 
               alt="Nirshux Logo" 
-              className="h-6 w-auto" 
+              className="h-8 w-auto" // Increased logo size
             />
             <h2 className="text-2xl font-bold">NIR<span className="text-[#00FFCC]">SHUX</span></h2>
           </div>
-          <p className="text-gray-400 text-sm leading-relaxed">
+          <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
             The next generation of crypto investment. Precision. Intelligence. Efficiency.
           </p>
         </div>

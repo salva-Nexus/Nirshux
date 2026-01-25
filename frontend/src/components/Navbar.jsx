@@ -13,19 +13,20 @@ const Navbar = () => {
 
   return (
     <nav className="fixed w-full z-50 bg-[#0B0E11]/80 backdrop-blur-md border-b border-white/5 py-4">
-      <div className="container mx-auto px-6 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
+      {/* Increased max-width for a wider layout */}
+      <div className="max-w-[1400px] mx-auto px-6 flex justify-between items-center">
+        <Link to="/" className="flex items-center gap-3">
           <img 
             src="/Nirshus-Logo.png" 
             alt="Nirshux Logo" 
-            className="h-8 w-auto" 
+            className="h-10 w-auto" // Increased logo size
           />
           <span className="text-2xl font-bold text-white tracking-tighter">
             NIR<span className="text-nirshux-accent">SHUX</span>
           </span>
         </Link>
         
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-6 items-center">
           {token ? (
             <button 
               onClick={handleLogout}
@@ -39,7 +40,7 @@ const Navbar = () => {
                 Sign In
               </Link>
               <Link to="/signup">
-                <button className="bg-nirshux-accent text-black px-5 py-2 rounded-lg text-sm font-bold hover:bg-white transition-all shadow-[0_0_15px_rgba(0,242,195,0.2)]">
+                <button className="bg-nirshux-accent text-black px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-white transition-all shadow-[0_0_15px_rgba(0,242,195,0.2)]">
                   Start Investing
                 </button>
               </Link>
