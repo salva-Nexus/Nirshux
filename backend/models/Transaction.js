@@ -3,14 +3,19 @@ const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['deposit', 'withdrawal', 'investment', 'referral_bonus'], required: true },
+  type: { 
+    type: String, 
+    enum: ['deposit', 'withdrawal', 'investment', 'referral_bonus', 'maturity_release'], // ✅ ADDED maturity_release
+    required: true 
+  },
   amount: { type: Number, required: true },
   coin: { type: String, required: true },
   network: { type: String, required: true },
   addressUsed: { type: String },
+  plan: { type: String }, // For investment transactions
   status: { 
     type: String, 
-    enum: ['pending', 'success', 'failed'], // Changed 'successful' to 'success' to match Admin logic
+    enum: ['pending', 'success', 'failed'],
     default: 'pending' 
   },
   date: { type: Date, default: Date.now }

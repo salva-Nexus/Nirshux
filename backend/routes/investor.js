@@ -20,7 +20,7 @@ const supabase = createClient(
   }
 );
 
-// --- SECURE ROI CALCULATION FUNCTION ---
+// --- SECURE ROI CALCULATION FUNCTION --- (REPLACE THE ENTIRE FUNCTION)
 const calculateRoi = async (user) => {
   const now = new Date();
   const lastCalc = new Date(user.lastRoiCalculation || user.createdAt);
@@ -65,17 +65,22 @@ const calculateRoi = async (user) => {
       user.balance += totalRelease;
       totalReleased += totalRelease;
 
-      // Log maturity transaction
-      const releaseTrx = new Transaction({
-        user: user._id,
-        type: 'maturity_release',
-        amount: totalRelease,
-        coin: `USD (${inv.planName} Matured)`,
-        network: 'Nirshux Protocol',
-        status: 'success'
-      });
-      await releaseTrx.save();
-      user.transactions.push(releaseTrx._id);
+      // ✅ FIX: Wrap transaction save in try-catch to prevent blocking
+      try {
+        const releaseTrx = new Transaction({
+          user: user._id,
+          type: 'maturity_release', // ✅ NOW VALID IN SCHEMA
+          amount: totalRelease,
+          coin: `USD (${inv.planName} Matured)`,
+          network: 'Nirshux Protocol',
+          status: 'success'
+        });
+        await releaseTrx.save();
+        user.transactions.push(releaseTrx._id);
+      } catch (trxError) {
+        console.error(`❌ Failed to save maturity transaction for ${user.email}:`, trxError.message);
+        // Continue anyway - balance was already updated
+      }
 
       inv.status = 'completed';
       console.log(`💰 ${user.email}: ${inv.planName} MATURED → Released ${totalRelease.toFixed(2)} (Principal: ${inv.amount}, Profit: ${inv.accrued.toFixed(2)})`);
@@ -149,7 +154,7 @@ const sendAdminAlert = async (type, details) => {
   }
 };
 
-// --- 1. PROFILE ROUTE (WITH ROI CALCULATION) ---
+// --- 1. PROFILE ROUTE (WITH ROI CALCULATION) --- (REPLACE THE ENTIRE ROUTE)
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
@@ -161,8 +166,14 @@ router.get('/profile', authMiddleware, async (req, res) => {
     
     if (!user) return res.status(404).json({ msg: "User profile not found" });
 
-    // CALCULATE ROI BEFORE RETURNING DATA
-    await calculateRoi(user);
+    // ✅ CALCULATE ROI WITH ERROR HANDLING - Don't let it block the response
+    try {
+      await calculateRoi(user);
+    } catch (roiError) {
+      console.error(`❌ ROI Calculation Error for ${user.email}:`, roiError.message);
+      console.error(roiError.stack);
+      // Continue anyway - user still gets their data
+    }
 
     // Reload user after ROI calculation
     const updatedUser = await User.findById(req.user.id)
@@ -174,7 +185,8 @@ router.get('/profile', authMiddleware, async (req, res) => {
 
     res.json(updatedUser);
   } catch (err) {
-    console.error(err.message);
+    console.error("❌ Profile Route Error:", err.message);
+    console.error(err.stack);
     res.status(500).send("Server Error fetching profile");
   }
 });
