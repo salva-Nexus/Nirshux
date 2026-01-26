@@ -16,8 +16,8 @@ const Hero = () => {
           <span className="text-nirshux-accent">Modern Investor.</span>
         </h1>
         <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto mb-8 leading-relaxed">
-          Nirshux uses advanced AI insights to optimize your portfolio. 
-          Trade, invest, and grow your assets with institutional precision.
+          Nirshux helps you track and manage your crypto portfolio with AI-powered insights. 
+          Explore, analyze, and stay informed about your digital assets.
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-3">
@@ -25,7 +25,7 @@ const Hero = () => {
             onClick={() => navigate('/signup')}
             className="bg-nirshux-accent text-black px-6 py-3 rounded-lg font-bold text-sm hover:bg-white transition-all shadow-[0_0_20px_rgba(0,242,195,0.3)]"
           >
-            Start Investing Now
+            Get Started
           </button>
           
           <button 

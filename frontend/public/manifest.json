@@ -1,0 +1,25 @@
+{
+  "short_name": "Nirshux",
+  "name": "Nirshux",
+  "icons": [
+    {
+      "src": "Nirshus-Logo.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "Nirshus-Logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "Nirshus-Logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#00f2c3",
+  "background_color": "#000000"
+}
