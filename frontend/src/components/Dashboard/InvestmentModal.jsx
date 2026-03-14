@@ -11,10 +11,10 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
   if (!isOpen) return null;
 
   const plans = [
-    { name: "STANDARD PLAN", min: 200, max: 499, roi: "2%", dailyValue: 2, duration: "30 Days", days: 30, icon: "📊" },
-    { name: "PROMO PLAN", min: 500, max: 999, roi: "4.5%", dailyValue: 4.5, duration: "7 Days", days: 7, icon: "🚀", popular: true },
-    { name: "PREMIUM PLAN", min: 1000, max: 4999, roi: "6.4%", dailyValue: 6.4, duration: "60 Days", days: 60, icon: "💎" },
-    { name: "GOLD-MINING-PLAN", min: 5000, max: 9999, roi: "9%", dailyValue: 9, duration: "90 Days", days: 90, icon: "⚡" },
+    { name: "STANDARD PLAN", min: 200, max: 499, roi: "2%", dailyValue: 2, duration: "7 Days", days: 7, icon: "📊" },
+    { name: "PROMO PLAN", min: 500, max: 999, roi: "4.5%", dailyValue: 4.5, duration: "12 Days", days: 12, icon: "🚀", popular: true },
+    { name: "PREMIUM PLAN", min: 1000, max: 4999, roi: "6.4%", dailyValue: 6.4, duration: "20 Days", days: 20, icon: "💎" },
+    { name: "GOLD-MINING-PLAN", min: 5000, max: 9999, roi: "9%", dailyValue: 9, duration: "30 Days", days: 30, icon: "⚡" },
     { name: "NIRSHUX API PLAN", min: 10000, max: 1000000, roi: "17%", dailyValue: 17, duration: "Unlimited", days: "Unlimited", icon: "🔥" },
   ];
 
