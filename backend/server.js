@@ -29,6 +29,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/investor', require('./routes/investor'));
 app.use('/api/market', require('./routes/market'));
+app.use('/api/chat', require('./routes/chat'));
 
 // --- DATABASE CONNECTION WITH TIMEOUT CONFIG ---
 const connectDB = async () => {
