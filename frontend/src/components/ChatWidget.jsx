@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API from '../api';
 
-const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName = '' }) => {
+const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -17,28 +18,38 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
     scrollToBottom();
   }, [messages]);
 
+  // Fetch messages when chat opens
   useEffect(() => {
     if (isOpen) {
       fetchMessages();
-      // Poll for new messages every 5 seconds when open
-      const interval = setInterval(fetchMessages, 5000);
+      const interval = setInterval(fetchMessages, 3000);
       return () => clearInterval(interval);
     }
-  }, [isOpen, selectedUserId]);
+  }, [isOpen]);
+
+  // Fetch unread count for badge
+  useEffect(() => {
+    if (!isOpen) {
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await API.get('/api/chat/unread-count');
+      setUnreadCount(res.data.unreadCount || 0);
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err);
+    }
+  };
 
   const fetchMessages = async () => {
     try {
-      const url = isAdmin && selectedUserId 
-        ? `/api/chat/messages?userId=${selectedUserId}` 
-        : '/api/chat/messages';
-      
-      const res = await API.get(url);
+      const res = await API.get('/api/chat/messages');
       setMessages(res.data);
-      
-      // Mark as read if admin
-      if (isAdmin && selectedUserId) {
-        await API.put(`/api/chat/mark-read/${selectedUserId}`);
-      }
+      setUnreadCount(0); // Reset when viewing
     } catch (err) {
       console.error('Failed to fetch messages:', err);
     }
@@ -46,19 +57,19 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || loading) return;
 
     setLoading(true);
     try {
       await API.post('/api/chat/send', {
-        message: newMessage,
-        recipientId: selectedUserId
+        message: newMessage.trim()
       });
       
       setNewMessage('');
-      fetchMessages();
+      await fetchMessages();
     } catch (err) {
       console.error('Failed to send message:', err);
+      alert('Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -68,9 +79,15 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-[180] w-14 h-14 bg-nirshux-accent hover:bg-nirshux-accent/90 rounded-full flex items-center justify-center shadow-2xl shadow-nirshux-accent/30 transition-all hover:scale-110 group"
+        className="fixed bottom-6 right-6 z-[180] w-14 h-14 bg-nirshux-accent hover:bg-nirshux-accent/90 rounded-full flex items-center justify-center shadow-2xl shadow-nirshux-accent/30 transition-all hover:scale-110 group relative"
       >
         <span className="text-2xl group-hover:scale-110 transition-transform">💬</span>
+        
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-black animate-pulse">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
     );
   }
@@ -81,12 +98,8 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
         {/* Header */}
         <div className="bg-nirshux-accent p-4 flex justify-between items-center">
           <div>
-            <h3 className="text-black font-black text-sm uppercase tracking-tight">
-              {isAdmin && selectedUserName ? `Chat with ${selectedUserName}` : 'Support Chat'}
-            </h3>
-            <p className="text-black/60 text-[9px] font-mono uppercase tracking-wider">
-              {isAdmin ? 'Admin Terminal' : 'Direct Line to Admin'}
-            </p>
+            <h3 className="text-black font-black text-sm uppercase tracking-tight">Support Chat</h3>
+            <p className="text-black/60 text-[9px] font-mono uppercase tracking-wider">Direct Line to Admin</p>
           </div>
           <button
             onClick={() => setIsOpen(false)}
@@ -97,7 +110,7 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
         </div>
 
         {/* Messages */}
-        <div className="h-[400px] overflow-y-auto p-4 space-y-3 bg-[#161A1E] custom-scrollbar">
+        <div className="h-[400px] overflow-y-auto p-4 space-y-3 bg-[#161A1E]">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4">
@@ -108,16 +121,22 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
             </div>
           ) : (
             messages.map((msg, idx) => {
-              const isUserMessage = msg.sender === 'user';
-              const isOwnMessage = isAdmin ? !isUserMessage : isUserMessage;
+              const isMyMessage = msg.sender === 'user';
               
               return (
-                <div key={idx} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] ${isOwnMessage ? 'bg-nirshux-accent text-black' : 'bg-white/10 text-white'} p-3 rounded-2xl`}>
-                    <p className="text-sm break-words">{msg.message}</p>
-                    <p className={`text-[9px] mt-1 font-mono ${isOwnMessage ? 'text-black/60' : 'text-gray-500'}`}>
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                <div key={idx} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
+                  <div className={`max-w-[75%] ${isMyMessage ? 'bg-nirshux-accent text-black' : 'bg-white/10 text-white'} p-3 rounded-2xl shadow-lg`}>
+                    <p className="text-sm break-words leading-relaxed">{msg.message}</p>
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <p className={`text-[9px] font-mono ${isMyMessage ? 'text-black/60' : 'text-gray-500'}`}>
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {isMyMessage && (
+                        <span className={`text-[10px] ${msg.read ? 'text-blue-400' : 'text-black/50'}`}>
+                          {msg.read ? '✓✓' : '✓'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -134,7 +153,8 @@ const ChatWidget = ({ isAdmin = false, selectedUserId = null, selectedUserName =
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-nirshux-accent transition-colors"
+              disabled={loading}
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none focus:border-nirshux-accent transition-colors disabled:opacity-50"
             />
             <button
               type="submit"
