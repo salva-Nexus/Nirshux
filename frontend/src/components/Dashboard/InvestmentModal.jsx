@@ -133,7 +133,9 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder={`${selectedPlan.min}`}
-                      className="bg-transparent text-5xl font-black text-nirshux-accent outline-none placeholder:text-lg placeholder:text-white/40 w-full max-w-[200px]"
+                      className="bg-transparent text-5xl font-black text-nirshux-accent outline-none             
+                      placeholder:text-base placeholder:font-semibold placeholder:text-white/40             
+                      w-full max-w-[200px]"
                       autoFocus
                       required
                     />
