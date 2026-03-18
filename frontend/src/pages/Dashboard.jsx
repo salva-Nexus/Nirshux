@@ -16,6 +16,7 @@ import Sidebar from '../components/Dashboard/Sidebar';
 import ActiveInvestments from './ActiveInvestments'; 
 import History from '../components/History';
 import ProfileView from './ProfileView';
+import ChatWidget from '../components/ChatWidget';
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -174,7 +175,6 @@ const Dashboard = () => {
           
           {view === 'oversight' && (
             <div className="animate-in fade-in duration-500">
-              {/* ✅ HEADER UPDATED BELOW */}
               <header className="mb-6 relative z-10">
                 <h1 className="text-sm md:text-base font-medium text-gray-300">
                   {isFirstVisit ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
@@ -279,6 +279,9 @@ const Dashboard = () => {
            triggerNotification("WITHDRAWAL STAGED");
         }} 
       />
+
+      {/* ✅ CHAT WIDGET ADDED */}
+      <ChatWidget isAdmin={false} />
     </div>
   );
 };
