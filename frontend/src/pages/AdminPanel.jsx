@@ -1,7 +1,6 @@
 // frontend/src/pages/AdminPanel.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import API from '../api';
-import AdminChatWidget from '../components/AdminChatWidget';
 
 const AdminPanel = () => {
   const [pendingDeposits, setPendingDeposits] = useState([]);
@@ -315,9 +314,6 @@ const AdminPanel = () => {
           </div>
         </section>
       </div>
-
-      {/* ✅ CHAT WIDGET ADDED HERE */}
-      <AdminChatWidget />
     </div>
   );
 };
