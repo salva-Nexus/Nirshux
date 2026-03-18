@@ -5,7 +5,7 @@ const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
 const nodemailer = require('nodemailer');
 
-// Send email alert to admin when user sends FIRST message
+// Send email alert to admin when user sends their FIRST message
 const alertAdmin = async (userName, userEmail, messageText) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -14,8 +14,8 @@ const alertAdmin = async (userName, userEmail, messageText) => {
       secure: false,
       auth: {
         user: 'nirshuxcom@gmail.com',
-        pass: process.env.GMAIL_APP_PASSWORD
-      }
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
     });
 
     await transporter.sendMail({
@@ -26,121 +26,101 @@ const alertAdmin = async (userName, userEmail, messageText) => {
         <div style="font-family: monospace; background: #0A0A0A; color: #fff; padding: 40px;">
           <h1 style="color: #00F2C3; text-transform: uppercase; font-weight: 900; margin-bottom: 10px;">NIRSHUX CHAT ALERT</h1>
           <p style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px;">New Message Received</p>
-          
           <div style="background: #1a1a1a; border: 2px solid #00F2C3; border-radius: 16px; padding: 30px; margin: 30px 0;">
             <p style="color: #999; font-size: 11px; text-transform: uppercase; margin-bottom: 10px;">FROM:</p>
             <h2 style="font-size: 24px; color: #00F2C3; font-weight: 900; margin: 0 0 5px 0;">${userName}</h2>
             <p style="color: #666; font-size: 12px; margin-bottom: 20px;">${userEmail}</p>
-            
             <p style="color: #999; font-size: 11px; text-transform: uppercase; margin-bottom: 10px;">MESSAGE:</p>
             <p style="color: #fff; font-size: 14px; background: #0A0A0A; padding: 15px; border-radius: 8px;">${messageText}</p>
           </div>
-          
           <p style="color: #666; font-size: 11px; text-align: center;">Login to your admin dashboard to respond.</p>
         </div>
-      `
+      `,
     });
-    console.log(`📧 Admin alerted: New message from ${userName}`);
+    console.log(`📧 Admin alerted: new message from ${userName}`);
   } catch (err) {
     console.error('❌ Admin email alert failed:', err.message);
   }
 };
 
-// @route   POST /api/chat/send
-// @desc    Send a chat message
+// ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
+// POST /api/chat/send
+// Body: { message, recipientId? }
+//   - User sends: recipientId is NOT required (always goes to admin thread)
+//   - Admin sends: recipientId IS required (targets a specific user's thread)
 router.post('/send', authMiddleware, async (req, res) => {
   try {
     const { message, recipientId } = req.body;
-    
-    console.log('📨 Chat send request:', { 
-      userId: req.user.id, 
-      hasMessage: !!message, 
-      hasRecipient: !!recipientId 
-    });
 
-    // Validate message
-    if (!message || message.trim() === '') {
-      console.log('❌ Empty message');
+    if (!message || !message.trim()) {
       return res.status(400).json({ msg: 'MESSAGE_EMPTY' });
     }
 
-    // Get sender
     const sender = await User.findById(req.user.id);
-    if (!sender) {
-      console.log('❌ Sender not found');
-      return res.status(404).json({ msg: 'USER_NOT_FOUND' });
-    }
+    if (!sender) return res.status(404).json({ msg: 'USER_NOT_FOUND' });
 
-    console.log(`👤 Sender: ${sender.fullName} (${sender.role})`);
-
-    let targetUserId;
+    let targetUserId;   // The "conversation owner" (always the non-admin user)
     let senderType;
 
     if (sender.role === 'admin') {
-      // Admin sending to a user
+      // Admin → User
       if (!recipientId) {
-        console.log('❌ Admin missing recipientId');
-        return res.status(400).json({ msg: 'RECIPIENT_REQUIRED' });
+        return res.status(400).json({ msg: 'RECIPIENT_REQUIRED_FOR_ADMIN' });
       }
-      targetUserId = recipientId;
+      targetUserId = recipientId;  // Store under the user's ID
       senderType = 'admin';
-      console.log(`✅ Admin → User: ${recipientId}`);
     } else {
-      // User sending to admin
-      targetUserId = req.user.id;
+      // User → Admin
+      targetUserId = req.user.id;  // Store under this user's own ID
       senderType = 'user';
-      console.log(`✅ User → Admin`);
-      
-      // Check if first message
-      const previousMessages = await ChatMessage.find({ user: targetUserId });
-      if (previousMessages.length === 0) {
-        console.log('📧 First message - sending admin alert');
-        await alertAdmin(sender.fullName, sender.email, message.trim());
+
+      // First-message email alert
+      const count = await ChatMessage.countDocuments({ user: targetUserId, sender: 'user' });
+      if (count === 0) {
+        alertAdmin(sender.fullName, sender.email, message.trim()); // fire-and-forget
       }
     }
 
-    // Create message
     const newMessage = new ChatMessage({
       user: targetUserId,
       sender: senderType,
       message: message.trim(),
-      read: senderType === 'admin'
+      read: senderType === 'admin', // admin messages start as "read" by admin
     });
 
     await newMessage.save();
-    console.log(`✅ Message saved: ${newMessage._id}`);
-    
-    // Populate for response
-    await newMessage.populate('user', 'fullName email');
 
-    res.json({ 
-      msg: 'MESSAGE_SENT', 
-      message: newMessage 
-    });
+    res.json({ msg: 'MESSAGE_SENT', message: newMessage });
   } catch (err) {
     console.error('❌ Chat send error:', err);
     res.status(500).json({ msg: 'TRANSMISSION_FAILED', error: err.message });
   }
 });
 
-// @route   GET /api/chat/messages
-// @desc    Get messages for a conversation
+// ─── GET MESSAGES ─────────────────────────────────────────────────────────────
+// GET /api/chat/messages
+// Query: ?userId=<id>  (admin only, to view a specific user's thread)
 router.get('/messages', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const requester = await User.findById(req.user.id);
     const { userId } = req.query;
 
     let messages;
 
-    if (user.role === 'admin' && userId) {
-      // Admin viewing specific user's chat
+    if (requester.role === 'admin' && userId) {
+      // Admin viewing a user's thread
       messages = await ChatMessage.find({ user: userId })
         .sort({ createdAt: 1 })
         .populate('user', 'fullName email');
     } else {
-      // Regular user viewing their own chat
-      messages = await ChatMessage.find({ user: req.user.id })
-        .sort({ createdAt: 1 });
+      // Regular user viewing their own thread
+      messages = await ChatMessage.find({ user: req.user.id }).sort({ createdAt: 1 });
+
+      // Mark admin messages as read (user opened the chat)
+      await ChatMessage.updateMany(
+        { user: req.user.id, sender: 'admin', read: false },
+        { read: true }
+      );
     }
 
     res.json(messages);
@@ -150,13 +130,12 @@ router.get('/messages', authMiddleware, async (req, res) => {
   }
 });
 
-// @route   GET /api/chat/conversations
-// @desc    Admin gets list of users who have messaged
+// ─── GET CONVERSATIONS (admin inbox list) ────────────────────────────────────
+// GET /api/chat/conversations
 router.get('/conversations', authMiddleware, async (req, res) => {
   try {
-    const admin = await User.findById(req.user.id);
-    
-    if (admin.role !== 'admin') {
+    const requester = await User.findById(req.user.id);
+    if (requester.role !== 'admin') {
       return res.status(403).json({ msg: 'ADMIN_ONLY' });
     }
 
@@ -172,19 +151,17 @@ router.get('/conversations', authMiddleware, async (req, res) => {
               $cond: [
                 { $and: [{ $eq: ['$sender', 'user'] }, { $eq: ['$read', false] }] },
                 1,
-                0
-              ]
-            }
-          }
-        }
+                0,
+              ],
+            },
+          },
+        },
       },
-      { $sort: { lastMessageDate: -1 } }
+      { $sort: { lastMessageDate: -1 } },
     ]);
 
-    await User.populate(conversations, { 
-      path: '_id', 
-      select: 'fullName email' 
-    });
+    // Populate the user details
+    await User.populate(conversations, { path: '_id', select: 'fullName email' });
 
     res.json(conversations);
   } catch (err) {
@@ -193,22 +170,17 @@ router.get('/conversations', authMiddleware, async (req, res) => {
   }
 });
 
-// @route   PUT /api/chat/mark-read/:userId
-// @desc    Mark messages as read
+// ─── MARK AS READ ─────────────────────────────────────────────────────────────
+// PUT /api/chat/mark-read/:userId
 router.put('/mark-read/:userId', authMiddleware, async (req, res) => {
   try {
-    const admin = await User.findById(req.user.id);
-    
-    if (admin.role !== 'admin') {
+    const requester = await User.findById(req.user.id);
+    if (requester.role !== 'admin') {
       return res.status(403).json({ msg: 'ADMIN_ONLY' });
     }
 
     await ChatMessage.updateMany(
-      { 
-        user: req.params.userId, 
-        sender: 'user', 
-        read: false 
-      },
+      { user: req.params.userId, sender: 'user', read: false },
       { read: true }
     );
 
@@ -219,24 +191,22 @@ router.put('/mark-read/:userId', authMiddleware, async (req, res) => {
   }
 });
 
-// @route   GET /api/chat/unread-count
-// @desc    Get unread count
+// ─── UNREAD COUNT ─────────────────────────────────────────────────────────────
+// GET /api/chat/unread-count
 router.get('/unread-count', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    
+    const requester = await User.findById(req.user.id);
     let unreadCount = 0;
 
-    if (user.role === 'admin') {
-      unreadCount = await ChatMessage.countDocuments({
-        sender: 'user',
-        read: false
-      });
+    if (requester.role === 'admin') {
+      // Admin: count all unread user messages across all threads
+      unreadCount = await ChatMessage.countDocuments({ sender: 'user', read: false });
     } else {
+      // User: count unread admin replies in their own thread
       unreadCount = await ChatMessage.countDocuments({
         user: req.user.id,
         sender: 'admin',
-        read: false
+        read: false,
       });
     }
 
