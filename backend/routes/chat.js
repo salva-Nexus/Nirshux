@@ -5,7 +5,7 @@ const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
 const nodemailer = require('nodemailer');
 
-// Send email alert to admin when user sends FIRST message in conversation
+// Send email alert to admin when user sends FIRST message
 const alertAdmin = async (userName, userEmail, messageText) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -47,19 +47,31 @@ const alertAdmin = async (userName, userEmail, messageText) => {
 };
 
 // @route   POST /api/chat/send
-// @desc    Send a chat message (user to admin OR admin to user)
+// @desc    Send a chat message
 router.post('/send', authMiddleware, async (req, res) => {
   try {
     const { message, recipientId } = req.body;
     
+    console.log('📨 Chat send request:', { 
+      userId: req.user.id, 
+      hasMessage: !!message, 
+      hasRecipient: !!recipientId 
+    });
+
+    // Validate message
     if (!message || message.trim() === '') {
+      console.log('❌ Empty message');
       return res.status(400).json({ msg: 'MESSAGE_EMPTY' });
     }
 
+    // Get sender
     const sender = await User.findById(req.user.id);
     if (!sender) {
+      console.log('❌ Sender not found');
       return res.status(404).json({ msg: 'USER_NOT_FOUND' });
     }
+
+    console.log(`👤 Sender: ${sender.fullName} (${sender.role})`);
 
     let targetUserId;
     let senderType;
@@ -67,35 +79,38 @@ router.post('/send', authMiddleware, async (req, res) => {
     if (sender.role === 'admin') {
       // Admin sending to a user
       if (!recipientId) {
+        console.log('❌ Admin missing recipientId');
         return res.status(400).json({ msg: 'RECIPIENT_REQUIRED' });
       }
       targetUserId = recipientId;
       senderType = 'admin';
+      console.log(`✅ Admin → User: ${recipientId}`);
     } else {
       // User sending to admin
       targetUserId = req.user.id;
       senderType = 'user';
+      console.log(`✅ User → Admin`);
       
-      // Check if this is the first message from this user (no previous messages)
+      // Check if first message
       const previousMessages = await ChatMessage.find({ user: targetUserId });
-      const isFirstMessage = previousMessages.length === 0;
-      
-      if (isFirstMessage) {
-        // Send email alert to admin for first message only
+      if (previousMessages.length === 0) {
+        console.log('📧 First message - sending admin alert');
         await alertAdmin(sender.fullName, sender.email, message.trim());
       }
     }
 
+    // Create message
     const newMessage = new ChatMessage({
       user: targetUserId,
       sender: senderType,
       message: message.trim(),
-      read: senderType === 'admin' // Admin messages are auto-marked as read
+      read: senderType === 'admin'
     });
 
     await newMessage.save();
+    console.log(`✅ Message saved: ${newMessage._id}`);
     
-    // Populate sender info for response
+    // Populate for response
     await newMessage.populate('user', 'fullName email');
 
     res.json({ 
@@ -104,7 +119,7 @@ router.post('/send', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Chat send error:', err);
-    res.status(500).json({ msg: 'TRANSMISSION_FAILED' });
+    res.status(500).json({ msg: 'TRANSMISSION_FAILED', error: err.message });
   }
 });
 
@@ -118,12 +133,12 @@ router.get('/messages', authMiddleware, async (req, res) => {
     let messages;
 
     if (user.role === 'admin' && userId) {
-      // Admin viewing a specific user's conversation
+      // Admin viewing specific user's chat
       messages = await ChatMessage.find({ user: userId })
         .sort({ createdAt: 1 })
         .populate('user', 'fullName email');
     } else {
-      // Regular user viewing their own conversation
+      // Regular user viewing their own chat
       messages = await ChatMessage.find({ user: req.user.id })
         .sort({ createdAt: 1 });
     }
@@ -136,7 +151,7 @@ router.get('/messages', authMiddleware, async (req, res) => {
 });
 
 // @route   GET /api/chat/conversations
-// @desc    Admin gets list of all users who have sent messages
+// @desc    Admin gets list of users who have messaged
 router.get('/conversations', authMiddleware, async (req, res) => {
   try {
     const admin = await User.findById(req.user.id);
@@ -145,7 +160,6 @@ router.get('/conversations', authMiddleware, async (req, res) => {
       return res.status(403).json({ msg: 'ADMIN_ONLY' });
     }
 
-    // Get all unique users who have messages
     const conversations = await ChatMessage.aggregate([
       {
         $group: {
@@ -167,7 +181,6 @@ router.get('/conversations', authMiddleware, async (req, res) => {
       { $sort: { lastMessageDate: -1 } }
     ]);
 
-    // Populate user details
     await User.populate(conversations, { 
       path: '_id', 
       select: 'fullName email' 
@@ -181,7 +194,7 @@ router.get('/conversations', authMiddleware, async (req, res) => {
 });
 
 // @route   PUT /api/chat/mark-read/:userId
-// @desc    Mark all unread messages from a user as read (admin only)
+// @desc    Mark messages as read
 router.put('/mark-read/:userId', authMiddleware, async (req, res) => {
   try {
     const admin = await User.findById(req.user.id);
@@ -207,7 +220,7 @@ router.put('/mark-read/:userId', authMiddleware, async (req, res) => {
 });
 
 // @route   GET /api/chat/unread-count
-// @desc    Get total unread message count (for badge)
+// @desc    Get unread count
 router.get('/unread-count', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -215,13 +228,11 @@ router.get('/unread-count', authMiddleware, async (req, res) => {
     let unreadCount = 0;
 
     if (user.role === 'admin') {
-      // Admin: count all unread messages from users
       unreadCount = await ChatMessage.countDocuments({
         sender: 'user',
         read: false
       });
     } else {
-      // Regular user: count unread messages from admin
       unreadCount = await ChatMessage.countDocuments({
         user: req.user.id,
         sender: 'admin',
