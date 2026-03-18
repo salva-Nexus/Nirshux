@@ -5,31 +5,29 @@ const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  plainPassword: { type: String, default: '' }, // blank for existing users, populated for new
+
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  
-  referralId: { type: String, unique: true }, 
-  referredBy: { type: String, default: null }, 
-  
+
+  referralId: { type: String, unique: true },
+  referredBy: { type: String, default: null },
+
   balance: { type: Number, default: 0 },
   referralBalance: { type: Number, default: 0 },
   totalInvested: { type: Number, default: 0 },
-  totalEarned: { type: Number, default: 0 }, 
-  withdrawn: { type: Number, default: 0 }, 
-  
+  totalEarned: { type: Number, default: 0 },
+  withdrawn: { type: Number, default: 0 },
+
   isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 
-  // --- FIRST INVESTMENT TRACKER ---
   hasMadeFirstInvestment: { type: Boolean, default: false },
 
-  // --- PASSWORD RESET FIELDS ---
   resetPasswordToken: { type: String },
   resetPasswordExpire: { type: Date },
 
-  // --- LOGIN-TRIGGERED ROI CALCULATION ---
   lastRoiCalculation: { type: Date, default: Date.now },
 
-  // --- REAL ARRAY FOR TRANSACTIONS ---
   transactions: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Transaction'
@@ -40,13 +38,13 @@ const userSchema = new mongoose.Schema({
     amount: Number,
     dailyRoi: Number,
     startDate: { type: Date, default: Date.now },
-    endDate: Date, 
+    endDate: Date,
     lastPayout: { type: Date, default: Date.now },
     accrued: { type: Number, default: 0 },
-    status: { type: String, default: 'active' } 
+    status: { type: String, default: 'active' }
   }]
-}, { 
-  toJSON: { virtuals: true }, 
+}, {
+  toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
