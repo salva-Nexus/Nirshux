@@ -17,6 +17,7 @@ import ActiveInvestments from './ActiveInvestments';
 import History from '../components/History';
 import ProfileView from './ProfileView';
 import ChatWidget from '../components/ChatWidget';
+import AdminChatWidget from '../components/AdminChatWidget';
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -280,8 +281,8 @@ const Dashboard = () => {
         }} 
       />
 
-      {/* ✅ CHAT WIDGET ADDED */}
-      <ChatWidget isAdmin={false} />
+      {/* ✅ FIXED: Admin gets AdminChatWidget, User gets ChatWidget */}
+      {userData.role === 'admin' ? <AdminChatWidget /> : <ChatWidget />}
     </div>
   );
 };
