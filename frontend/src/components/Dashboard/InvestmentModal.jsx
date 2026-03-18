@@ -129,16 +129,14 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
                   <div className="flex items-center justify-center gap-2">
                     <span className="text-4xl font-black text-gray-600">$</span>
                     <input 
-                      type="number" 
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder={`${selectedPlan.min}`}
-                      className="bg-transparent text-5xl font-black text-nirshux-accent outline-none             
-                      placeholder:text-base placeholder:font-semibold placeholder:text-white/40             
-                      w-full max-w-[200px]"
-                      autoFocus
-                      required
-                    />
+  type="number" 
+  value={amount}
+  onChange={(e) => setAmount(e.target.value)}
+  placeholder={`${selectedPlan.min.toLocaleString()} - ${selectedPlan.max.toLocaleString()}`}
+  className="investment-input bg-transparent text-5xl font-black text-nirshux-accent outline-none w-full max-w-[200px]"
+  autoFocus
+  required
+/>
                   </div>
                 </div>
 
