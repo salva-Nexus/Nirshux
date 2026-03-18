@@ -32,11 +32,17 @@
 :root {
   background-color: #0B0E11;
   color: white;
-  overflow-x: hidden; /* Prevents unwanted horizontal scrolling */
+  overflow-x: hidden;
   font-family: 'Inter', sans-serif;
 }
 
-/* Optional: Smooth scrolling for the whole page */
 html {
   scroll-behavior: smooth;
+}
+
+/* ✅ FIX: Placeholder styling for investment input */
+.investment-input::placeholder {
+  font-size: 1rem;   /* smaller than input text */
+  opacity: 0.4;      /* visible but not overpowering */
+  color: white;
 }
