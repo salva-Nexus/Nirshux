@@ -60,13 +60,8 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl overflow-y-auto outline-none">
-      {/* FIX: Changed flex-center to flex-col + p-4/py-20. 
-         This allows the modal to scroll naturally from the top rather than being 
-         "stuck" behind the header ticker on mobile.
-      */}
       <div className="min-h-screen flex flex-col items-center justify-start py-20 px-4">
         
-        {/* FIX: Reduced max-w-5xl to max-w-4xl to prevent wide-screen stretching */}
         <div className="bg-[#161A1E] border border-white/10 w-full max-w-4xl rounded-[2rem] p-6 md:p-10 shadow-2xl relative animate-in fade-in slide-in-from-bottom-4 duration-300">
           
           {/* Header */}
@@ -110,9 +105,20 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
                   <h3 className="text-gray-500 font-black text-[10px] uppercase tracking-widest mb-1">{plan.name}</h3>
                   <p className="text-white text-3xl font-black mb-4 italic">{plan.roi} <span className="text-[10px] text-gray-500 font-normal not-italic tracking-normal">DAILY</span></p>
                   
+                  {/* ✅ FIXED: NOW SHOWS MIN, MAX, AND LOCK TERM */}
                   <div className="space-y-2 border-t border-white/5 pt-4 mb-6 text-[11px] font-bold">
-                     <div className="flex justify-between"><span className="text-gray-600 uppercase">Min Stake</span><span className="text-white font-mono">${plan.min.toLocaleString()}</span></div>
-                     <div className="flex justify-between"><span className="text-gray-600 uppercase">Lock Term</span><span className="text-white uppercase">{plan.duration}</span></div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 uppercase">Min Stake</span>
+                      <span className="text-white font-mono">${plan.min.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 uppercase">Max Stake</span>
+                      <span className="text-white font-mono">${plan.max.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 uppercase">Lock Term</span>
+                      <span className="text-white uppercase">{plan.duration}</span>
+                    </div>
                   </div>
                   
                   <button className="w-full bg-white/5 text-white font-black py-3 rounded-xl group-hover:bg-nirshux-accent group-hover:text-black transition-all uppercase text-[10px] tracking-widest">
@@ -133,7 +139,7 @@ const InvestmentModal = ({ isOpen, onClose, refreshData }) => {
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder={`${selectedPlan.min.toLocaleString()} - ${selectedPlan.max.toLocaleString()}`}
-                      className="investment-input bg-transparent text-5xl font-black text-nirshux-accent outline-none w-full max-w-[200px]"
+                      className="bg-transparent text-5xl font-black text-nirshux-accent outline-none placeholder:text-lg placeholder:text-white/40 w-full max-w-[200px]"
                       autoFocus
                       required
                     />
