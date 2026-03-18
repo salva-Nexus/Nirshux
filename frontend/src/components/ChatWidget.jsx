@@ -20,9 +20,11 @@ const ChatWidget = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Poll messages when open
+  // When chat OPENS: mark admin messages as read, then start polling
   useEffect(() => {
     if (isOpen) {
+      // Mark admin messages as read immediately on open
+      API.put('/api/chat/mark-read-user').catch(() => {});
       fetchMessages();
       pollRef.current = setInterval(fetchMessages, 3000);
     } else {
@@ -31,13 +33,14 @@ const ChatWidget = () => {
     return () => clearInterval(pollRef.current);
   }, [isOpen]);
 
-  // Poll unread count when closed
+  // When chat is CLOSED: poll unread count for the badge
   useEffect(() => {
     if (!isOpen) {
       fetchUnreadCount();
       unreadPollRef.current = setInterval(fetchUnreadCount, 5000);
     } else {
       clearInterval(unreadPollRef.current);
+      setUnreadCount(0); // clear badge while open
     }
     return () => clearInterval(unreadPollRef.current);
   }, [isOpen]);
@@ -47,7 +50,7 @@ const ChatWidget = () => {
       const res = await API.get('/api/chat/unread-count');
       setUnreadCount(res.data.unreadCount || 0);
     } catch (err) {
-      // Silent fail
+      // silent
     }
   };
 
@@ -55,10 +58,14 @@ const ChatWidget = () => {
     try {
       const res = await API.get('/api/chat/messages');
       setMessages(res.data);
-      setUnreadCount(0);
     } catch (err) {
-      // Silent fail
+      // silent
     }
+  };
+
+  const handleOpen = () => {
+    setIsOpen(true);
+    setUnreadCount(0);
   };
 
   const sendMessage = async (e) => {
@@ -83,7 +90,6 @@ const ChatWidget = () => {
       await API.post('/api/chat/send', { message: msgText });
       await fetchMessages();
     } catch (err) {
-      // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m._id !== optimisticMsg._id));
       setNewMessage(msgText);
     } finally {
@@ -91,12 +97,12 @@ const ChatWidget = () => {
     }
   };
 
-  // CLOSED STATE — floating button
+  // ─── CLOSED STATE ────────────────────────────────────────────────────────────
   if (!isOpen) {
     return (
       <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999 }}>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpen}
           className="w-14 h-14 bg-nirshux-accent hover:bg-nirshux-accent/90 rounded-full flex items-center justify-center shadow-2xl shadow-nirshux-accent/30 transition-all hover:scale-110 relative"
         >
           <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 24 24">
@@ -112,7 +118,7 @@ const ChatWidget = () => {
     );
   }
 
-  // OPEN STATE — chat window
+  // ─── OPEN STATE ──────────────────────────────────────────────────────────────
   return (
     <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999, width: '380px', maxWidth: 'calc(100vw - 2rem)' }}>
       <div className="bg-[#0B0E11] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: '520px' }}>
@@ -122,7 +128,7 @@ const ChatWidget = () => {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center">
               <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
               </svg>
             </div>
             <div>
@@ -138,7 +144,7 @@ const ChatWidget = () => {
           </button>
         </div>
 
-        {/* Messages area */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#161A1E]">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center">
@@ -160,13 +166,11 @@ const ChatWidget = () => {
                       A
                     </div>
                   )}
-                  <div
-                    className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm ${
-                      isMine
-                        ? 'bg-nirshux-accent text-black rounded-br-sm'
-                        : 'bg-white/10 text-white rounded-bl-sm'
-                    } ${msg._optimistic ? 'opacity-70' : ''}`}
-                  >
+                  <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl shadow-sm ${
+                    isMine
+                      ? 'bg-nirshux-accent text-black rounded-br-sm'
+                      : 'bg-white/10 text-white rounded-bl-sm'
+                  } ${msg._optimistic ? 'opacity-70' : ''}`}>
                     <p className="text-sm leading-relaxed break-words">{msg.message}</p>
                     <div className="flex items-center justify-end gap-1 mt-1">
                       <p className={`text-[9px] font-mono ${isMine ? 'text-black/50' : 'text-gray-500'}`}>
