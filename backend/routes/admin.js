@@ -14,11 +14,19 @@ const adminOnly = async (req, res, next) => {
 };
 
 // --- USER OPERATIONS ---
+
+// GET all users — explicitly select plainPassword so the admin panel can display it
 router.get('/users', [authMiddleware, adminOnly], async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    // select('-password') removes the bcrypt hash but KEEPS plainPassword (different field)
+    // Being explicit here to make it obvious and avoid future confusion
+    const users = await User.find()
+      .select('-password')  // strips hashed password only; plainPassword is a separate field
+      .sort({ createdAt: -1 });
     res.json(users);
-  } catch (err) { res.status(500).json({ msg: "REGISTRY_SYNC_FAILED" }); }
+  } catch (err) {
+    res.status(500).json({ msg: "REGISTRY_SYNC_FAILED" });
+  }
 });
 
 router.delete('/user/:id', [authMiddleware, adminOnly], async (req, res) => {
@@ -34,17 +42,13 @@ router.delete('/user/:id', [authMiddleware, adminOnly], async (req, res) => {
 // @desc    Manually increase/decrease user balance
 router.put('/user/adjust-balance/:id', [authMiddleware, adminOnly], async (req, res) => {
   try {
-    const { amount } = req.body; // Can be positive (add) or negative (subtract)
-    
+    const { amount } = req.body;
     if (isNaN(amount)) return res.status(400).json({ msg: "INVALID_AMOUNT" });
 
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ msg: "SUBJECT_NOT_FOUND" });
 
-    // Apply mutation
     user.balance += Number(amount);
-    
-    // Safety check: Don't let balance go below zero unless you want 'debt'
     if (user.balance < 0) user.balance = 0;
 
     await user.save();
@@ -58,17 +62,13 @@ router.put('/user/adjust-balance/:id', [authMiddleware, adminOnly], async (req, 
 // @desc    Manually adjust user's total earned stat
 router.put('/user/adjust-total-earned/:id', [authMiddleware, adminOnly], async (req, res) => {
   try {
-    const { amount } = req.body; // Can be positive (add) or negative (subtract)
-    
+    const { amount } = req.body;
     if (isNaN(amount)) return res.status(400).json({ msg: "INVALID_AMOUNT" });
 
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ msg: "SUBJECT_NOT_FOUND" });
 
-    // Apply mutation
     user.totalEarned += Number(amount);
-    
-    // Safety check: Don't let totalEarned go below zero
     if (user.totalEarned < 0) user.totalEarned = 0;
 
     await user.save();
@@ -78,10 +78,11 @@ router.put('/user/adjust-total-earned/:id', [authMiddleware, adminOnly], async (
   }
 });
 
+// --- DEPOSIT OPERATIONS ---
+
 // GET ALL PENDING DEPOSITS
 router.get('/pending-deposits', [authMiddleware, adminOnly], async (req, res) => {
   try {
-    // This finds transactions where the type is deposit and status is pending
     const pending = await Transaction.find({ type: 'deposit', status: 'pending' })
       .populate('user', 'fullName email')
       .sort({ createdAt: -1 });
@@ -91,37 +92,9 @@ router.get('/pending-deposits', [authMiddleware, adminOnly], async (req, res) =>
   }
 });
 
-// --- WALLET / ASSET OPERATIONS ---
-router.get('/wallets', [authMiddleware, adminOnly], async (req, res) => {
-  try {
-    const wallets = await Wallet.find().sort({ createdAt: -1 });
-    res.json(wallets);
-  } catch (err) { res.status(500).json({ msg: "ASSET_FETCH_FAILED" }); }
-});
-
-router.post('/whitelist-wallet', [authMiddleware, adminOnly], async (req, res) => {
-  try {
-    const newWallet = new Wallet(req.body);
-    await newWallet.save();
-    res.json({ msg: "ASSET_AUTHORIZED" });
-  } catch (err) { res.status(500).json({ msg: "AUTHORIZATION_FAILED" }); }
-});
-
-// NEW: DE-LIST ASSET
-router.delete('/wallet/:id', [authMiddleware, adminOnly], async (req, res) => {
-  try {
-    await Wallet.findByIdAndDelete(req.params.id);
-    res.json({ msg: "ASSET_DE_LISTED" });
-  } catch (err) { res.status(500).json({ msg: "REVOCATION_FAILED" }); }
-});
-
-// routes/admin.js (Add these to your existing routes)
-
 // @route   PUT api/admin/deposit/approve/:id
-// @desc    Admin approves a deposit, adds money to user balance
-router.put('/deposit/approve/:id', [authMiddleware], async (req, res) => {
+router.put('/deposit/approve/:id', [authMiddleware, adminOnly], async (req, res) => {
   try {
-    // Check if admin (you already have this logic in your adminOnly middleware)
     const trx = await Transaction.findById(req.params.id);
     if (!trx) return res.status(404).json({ msg: "TRANSACTION_NOT_FOUND" });
     if (trx.status !== 'pending') return res.status(400).json({ msg: "ALREADY_PROCESSED" });
@@ -129,10 +102,8 @@ router.put('/deposit/approve/:id', [authMiddleware], async (req, res) => {
     const user = await User.findById(trx.user);
     if (!user) return res.status(404).json({ msg: "USER_NOT_FOUND" });
 
-    // Math: Update balance and total stats
     user.balance += trx.amount;
     user.totalDeposited = (user.totalDeposited || 0) + trx.amount;
-    
     trx.status = 'success';
 
     await user.save();
@@ -145,8 +116,7 @@ router.put('/deposit/approve/:id', [authMiddleware], async (req, res) => {
 });
 
 // @route   PUT api/admin/deposit/reject/:id
-// @desc    Admin rejects a deposit
-router.put('/deposit/reject/:id', [authMiddleware], async (req, res) => {
+router.put('/deposit/reject/:id', [authMiddleware, adminOnly], async (req, res) => {
   try {
     const trx = await Transaction.findById(req.params.id);
     if (!trx) return res.status(404).json({ msg: "TRANSACTION_NOT_FOUND" });
@@ -175,7 +145,6 @@ router.get('/pending-withdrawals', [authMiddleware, adminOnly], async (req, res)
 });
 
 // @route   PUT api/admin/withdrawal/approve/:id
-// @desc    Approve withdrawal, deduct from balance, update 'withdrawn' stat
 router.put('/withdrawal/approve/:id', [authMiddleware, adminOnly], async (req, res) => {
   try {
     const trx = await Transaction.findById(req.params.id);
@@ -185,14 +154,12 @@ router.put('/withdrawal/approve/:id', [authMiddleware, adminOnly], async (req, r
     const user = await User.findById(trx.user);
     if (!user) return res.status(404).json({ msg: "USER_NOT_FOUND" });
 
-    // Ensure they still have the funds (Safety check)
     if (user.balance < trx.amount) {
       trx.status = 'failed';
       await trx.save();
       return res.status(400).json({ msg: "INSUFFICIENT_USER_BALANCE" });
     }
 
-    // UPDATE LOGIC: Deduct balance + increase withdrawn stat
     user.balance -= trx.amount;
     user.withdrawn = (user.withdrawn || 0) + trx.amount;
     trx.status = 'success';
@@ -219,6 +186,30 @@ router.put('/withdrawal/reject/:id', [authMiddleware, adminOnly], async (req, re
   } catch (err) {
     res.status(500).json({ msg: "REJECTION_FAILED" });
   }
+});
+
+// --- WALLET / ASSET OPERATIONS ---
+
+router.get('/wallets', [authMiddleware, adminOnly], async (req, res) => {
+  try {
+    const wallets = await Wallet.find().sort({ createdAt: -1 });
+    res.json(wallets);
+  } catch (err) { res.status(500).json({ msg: "ASSET_FETCH_FAILED" }); }
+});
+
+router.post('/whitelist-wallet', [authMiddleware, adminOnly], async (req, res) => {
+  try {
+    const newWallet = new Wallet(req.body);
+    await newWallet.save();
+    res.json({ msg: "ASSET_AUTHORIZED" });
+  } catch (err) { res.status(500).json({ msg: "AUTHORIZATION_FAILED" }); }
+});
+
+router.delete('/wallet/:id', [authMiddleware, adminOnly], async (req, res) => {
+  try {
+    await Wallet.findByIdAndDelete(req.params.id);
+    res.json({ msg: "ASSET_DE_LISTED" });
+  } catch (err) { res.status(500).json({ msg: "REVOCATION_FAILED" }); }
 });
 
 module.exports = router;
