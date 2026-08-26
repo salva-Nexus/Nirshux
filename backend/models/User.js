@@ -1,51 +1,63 @@
 // backend/models/User.js
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
-  fullName: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  plainPassword: { type: String, default: '' }, // blank for existing users, populated for new
+const userSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    plainPassword: { type: String, default: "" }, // blank for existing users, populated for new
 
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ["user", "admin"], default: "user" },
 
-  referralId: { type: String, unique: true },
-  referredBy: { type: String, default: null },
+    referralId: { type: String, unique: true },
+    referredBy: { type: String, default: null },
 
-  balance: { type: Number, default: 0 },
-  referralBalance: { type: Number, default: 0 },
-  totalInvested: { type: Number, default: 0 },
-  totalEarned: { type: Number, default: 0 },
-  withdrawn: { type: Number, default: 0 },
+    balance: { type: Number, default: 0 },
+    referralBalance: { type: Number, default: 0 },
+    totalInvested: { type: Number, default: 0 },
+    totalEarned: { type: Number, default: 0 },
+    totalDeposited: { type: Number, default: 0 },
+    withdrawn: { type: Number, default: 0 },
 
-  isVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
+    disabledPlans: { type: [String], default: [] },
 
-  hasMadeFirstInvestment: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
 
-  resetPasswordToken: { type: String },
-  resetPasswordExpire: { type: Date },
+    hasMadeFirstInvestment: { type: Boolean, default: false },
 
-  lastRoiCalculation: { type: Date, default: Date.now },
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date },
 
-  transactions: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Transaction'
-  }],
+    lastRoiCalculation: { type: Date, default: Date.now },
 
-  activeInvestments: [{
-    planName: String,
-    amount: Number,
-    dailyRoi: Number,
-    startDate: { type: Date, default: Date.now },
-    endDate: Date,
-    lastPayout: { type: Date, default: Date.now },
-    accrued: { type: Number, default: 0 },
-    status: { type: String, default: 'active' }
-  }]
-}, {
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
+    transactions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Transaction",
+      },
+    ],
+
+    activeInvestments: [
+      {
+        planName: String,
+        amount: Number,
+        dailyRoi: Number,
+        startDate: { type: Date, default: Date.now },
+        endDate: Date,
+        lastPayout: { type: Date, default: Date.now },
+        accrued: { type: Number, default: 0 },
+        status: { type: String, default: "active" },
+        pausedAt: { type: Date, default: null },
+        totalPausedMs: { type: Number, default: 0 },
+      },
+    ],
+  },
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
+);
 
 module.exports = mongoose.model('User', userSchema);

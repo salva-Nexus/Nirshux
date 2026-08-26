@@ -54,6 +54,10 @@ const StatCard = ({ label, value, color }) => {
 const BalanceConfirmModal = ({
   oldBalance,
   newBalance,
+  recordInHistory,
+  onToggleRecordInHistory,
+  sendEmail,
+  onToggleSendEmail,
   onConfirm,
   onCancel,
   loading,
@@ -94,46 +98,96 @@ const BalanceConfirmModal = ({
             </p>
           </div>
         ) : (
-          <div
-            className={`rounded-2xl p-4 mb-6 border ${
-              isDeposit
-                ? "bg-emerald-500/[0.06] border-emerald-500/20"
-                : "bg-red-500/[0.06] border-red-500/20"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span
-                className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${
+          <>
+            <label className="flex items-center gap-2 mb-3 px-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={recordInHistory}
+                onChange={(e) => onToggleRecordInHistory(e.target.checked)}
+                className="w-3.5 h-3.5 rounded accent-nirshux-accent cursor-pointer"
+              />
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                Record as {isDeposit ? "deposit" : "withdrawal"} in history
+              </span>
+            </label>
+
+            {recordInHistory ? (
+              <div
+                className={`rounded-2xl p-4 mb-4 border ${
                   isDeposit
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-red-500/15 text-red-400"
+                    ? "bg-emerald-500/[0.06] border-emerald-500/20"
+                    : "bg-red-500/[0.06] border-red-500/20"
                 }`}
               >
-                {isDeposit ? "↑ Deposit" : "↓ Withdrawal"}
-              </span>
-              <span
-                className={`font-mono font-black text-lg ${isDeposit ? "text-emerald-400" : "text-red-400"}`}
-              >
-                {isDeposit ? "+" : "-"}$
-                {diffAbs.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-400 leading-relaxed">
-              This will be written into the user's transaction history as a{" "}
-              <strong className="text-gray-200">
-                {isDeposit ? "deposit" : "withdrawal"}
-              </strong>{" "}
-              of the difference above. Current balance: $
-              {oldBalance.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-              .
-            </p>
-          </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${
+                      isDeposit
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-red-500/15 text-red-400"
+                    }`}
+                  >
+                    {isDeposit ? "↑ Deposit" : "↓ Withdrawal"}
+                  </span>
+                  <span
+                    className={`font-mono font-black text-lg ${isDeposit ? "text-emerald-400" : "text-red-400"}`}
+                  >
+                    {isDeposit ? "+" : "-"}$
+                    {diffAbs.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  This will be written into the user's transaction history as a{" "}
+                  <strong className="text-gray-200">
+                    {isDeposit ? "deposit" : "withdrawal"}
+                  </strong>{" "}
+                  of the difference above. Current balance: $
+                  {oldBalance.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                  .
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 mb-4">
+                <p className="text-[10px] text-gray-400 leading-relaxed">
+                  Balance will change from $
+                  {oldBalance.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  to{" "}
+                  <strong className="text-gray-200">
+                    $
+                    {newBalance.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </strong>{" "}
+                  silently — no transaction will be added to the user's history,
+                  and deposited/withdrawn totals won't change.
+                </p>
+              </div>
+            )}
+
+            {recordInHistory && (
+              <label className="flex items-center gap-2 mb-6 px-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => onToggleSendEmail(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-nirshux-accent cursor-pointer"
+                />
+                <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">
+                  Notify user by email
+                </span>
+              </label>
+            )}
+          </>
         )}
 
         <div className="flex gap-3">
@@ -169,6 +223,8 @@ const AdminUserView = () => {
 
   // Balance-specific confirm-card state
   const [balanceConfirm, setBalanceConfirm] = useState(null); // { newBalance } | null
+  const [confirmRecordInHistory, setConfirmRecordInHistory] = useState(true);
+  const [confirmSendEmail, setConfirmSendEmail] = useState(false);
 
   const startLoading = (id) => setLoadingIds((prev) => new Set(prev).add(id));
   const stopLoading = (id) =>
@@ -223,6 +279,8 @@ const AdminUserView = () => {
     if (isNaN(num) || value === "")
       return showToast("ENTER A VALID AMOUNT", "error");
     if (num < 0) return showToast("AMOUNT CANNOT BE NEGATIVE", "error");
+    setConfirmRecordInHistory(true);
+    setConfirmSendEmail(false);
     setBalanceConfirm({ newBalance: num });
   };
 
@@ -232,16 +290,20 @@ const AdminUserView = () => {
     try {
       const res = await API.put(`/api/admin/user/set-balance/${userId}`, {
         amount: balanceConfirm.newBalance,
+        recordInHistory: confirmRecordInHistory,
+        sendEmail: confirmRecordInHistory && confirmSendEmail,
       });
       const { recordedAs } = res.data || {};
       showToast(
         recordedAs
           ? `BALANCE UPDATED · RECORDED AS ${recordedAs.toUpperCase()}`
-          : "BALANCE UNCHANGED",
+          : "BALANCE UPDATED · NOT RECORDED IN HISTORY",
         "success",
       );
       setAdjusting(null);
       setBalanceConfirm(null);
+      setConfirmRecordInHistory(true);
+      setConfirmSendEmail(false);
       fetchUser();
     } catch {
       showToast("FAILED TO UPDATE BALANCE", "error");
@@ -397,6 +459,10 @@ const AdminUserView = () => {
         <BalanceConfirmModal
           oldBalance={user.balance || 0}
           newBalance={balanceConfirm.newBalance}
+          recordInHistory={confirmRecordInHistory}
+          onToggleRecordInHistory={setConfirmRecordInHistory}
+          sendEmail={confirmSendEmail}
+          onToggleSendEmail={setConfirmSendEmail}
           loading={loadingIds.has("set-balance")}
           onCancel={() => setBalanceConfirm(null)}
           onConfirm={confirmBalanceChange}
@@ -818,7 +884,7 @@ const AdminUserView = () => {
       </div>
     </div>
   );
-};
+};;;
 
 const EmptyState = ({ icon, label }) => (
   <div className="flex flex-col items-center justify-center py-20 text-center">

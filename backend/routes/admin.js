@@ -252,7 +252,7 @@ router.put(
   [authMiddleware, adminOnly],
   async (req, res) => {
     try {
-      const { amount, sendEmail } = req.body;
+      const { amount, sendEmail, recordInHistory } = req.body;
       if (amount === undefined || amount === "" || isNaN(amount))
         return res.status(400).json({ msg: "INVALID_AMOUNT" });
 
@@ -262,13 +262,15 @@ router.put(
       const newBalance = Number(amount);
       const oldBalance = user.balance || 0;
       const delta = newBalance - oldBalance;
+      // Defaults true so any other caller that omits this field keeps old behavior.
+      const shouldRecord = recordInHistory !== false;
 
       user.balance = newBalance;
 
       let recordedType = null;
       let recordedAmount = 0;
 
-      if (delta > 0) {
+      if (delta > 0 && shouldRecord) {
         recordedType = "deposit";
         recordedAmount = delta;
         user.totalDeposited = (user.totalDeposited || 0) + delta;
@@ -283,7 +285,7 @@ router.put(
         });
         await trx.save();
         user.transactions.push(trx._id);
-      } else if (delta < 0) {
+      } else if (delta < 0 && shouldRecord) {
         recordedType = "withdrawal";
         recordedAmount = Math.abs(delta);
         user.withdrawn = (user.withdrawn || 0) + Math.abs(delta);
@@ -299,6 +301,8 @@ router.put(
         await trx.save();
         user.transactions.push(trx._id);
       }
+      // delta !== 0 but shouldRecord === false → balance still changes above,
+      // but no Transaction, no totalDeposited/withdrawn bump. Silent correction.
 
       await user.save();
 
