@@ -123,20 +123,31 @@ const Dashboard = () => {
       )}
 
       <div className="fixed top-0 left-0 w-full z-[170] border-b border-white/5 bg-[#0B0E11] ticker-wrapper">
-        <TickerTape colorTheme="dark" symbols={[{ proName: "BINANCE:BTCUSDT", title: "BTC" }, { proName: "BINANCE:ETHUSDT", title: "ETH" }]} />
+        <TickerTape
+          colorTheme="dark"
+          symbols={[
+            { proName: "BINANCE:BTCUSDT", title: "BTC" },
+            { proName: "BINANCE:ETHUSDT", title: "ETH" },
+          ]}
+        />
       </div>
 
       <nav className="fixed top-[35px] left-0 w-full flex justify-between items-center px-4 md:px-10 bg-[#0B0E11]/95 backdrop-blur-md z-[165] border-b border-white/5 h-[55px] md:h-[60px]">
         <div className="flex items-center gap-4">
           <button
-            onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(!isSidebarOpen); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSidebarOpen(!isSidebarOpen);
+            }}
             className="xl:hidden p-2 hover:bg-white/5 rounded-lg transition-colors"
           >
             <div className="w-5 h-[1.5px] bg-nirshux-accent mb-1"></div>
             <div className="w-5 h-[1.5px] bg-nirshux-accent mb-1"></div>
             <div className="w-3 h-[1.5px] bg-nirshux-accent"></div>
           </button>
-          <div className="text-lg md:text-xl font-bold text-nirshux-accent tracking-tight uppercase">Nirshux</div>
+          <div className="text-lg md:text-xl font-bold text-nirshux-accent tracking-tight uppercase">
+            Nirshux
+          </div>
         </div>
 
         <div className="relative" ref={dropdownRef}>
@@ -148,23 +159,39 @@ const Dashboard = () => {
               {userData.fullName?.charAt(0)}
             </div>
             <div className="hidden sm:block text-left leading-tight">
-              <p className="text-[10px] md:text-xs font-bold truncate max-w-[120px]">{userData.fullName}</p>
-              <p className="text-[9px] text-gray-500 uppercase tracking-tight">{userData.role}</p>
+              <p className="text-[10px] md:text-xs font-bold truncate max-w-[120px]">
+                {userData.fullName}
+              </p>
+              <p className="text-[9px] text-gray-500 uppercase tracking-tight">
+                {userData.role}
+              </p>
             </div>
           </button>
 
           {isProfileOpen && (
             <div className="absolute right-0 mt-3 w-60 bg-[#161A1E] border border-white/10 rounded-2xl shadow-2xl p-2 z-[170] animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="p-4 border-b border-white/5 mb-2">
-                <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide mb-1">Available Balance</p>
-                <p className="text-lg font-mono text-nirshux-accent">${userData.balance?.toLocaleString() || '0.00'}</p>
+                <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wide mb-1">
+                  Available Balance
+                </p>
+                <p className="text-lg font-mono text-nirshux-accent">
+                  ${userData.balance?.toLocaleString() || "0.00"}
+                </p>
               </div>
-              {userData.role === 'admin' && (
-                <button onClick={() => navigate('/admin-panel')} className="w-full text-left p-3 text-nirshux-accent bg-nirshux-accent/10 rounded-xl text-xs font-bold mb-2 hover:bg-nirshux-accent/20 transition-all uppercase flex items-center gap-2">
+              {userData.role === "admin" && (
+                <button
+                  onClick={() => navigate("/admin-panel")}
+                  className="w-full text-left p-3 text-nirshux-accent bg-nirshux-accent/10 rounded-xl text-xs font-bold mb-2 hover:bg-nirshux-accent/20 transition-all uppercase flex items-center gap-2"
+                >
                   ⚡ Admin Terminal
                 </button>
               )}
-              <button onClick={handleLogout} className="w-full text-left p-3 text-red-400 hover:bg-red-400/10 rounded-xl text-xs transition-all font-bold">Sign Out</button>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left p-3 text-red-400 hover:bg-red-400/10 rounded-xl text-xs transition-all font-bold"
+              >
+                Sign Out
+              </button>
             </div>
           )}
         </div>
@@ -181,12 +208,13 @@ const Dashboard = () => {
         />
 
         <main className="flex-1 px-4 md:px-8 pt-[100px] md:pt-[120px] xl:ml-64 max-w-[1600px] mx-auto pb-24 transition-all overflow-x-hidden">
-
-          {view === 'oversight' && (
+          {view === "oversight" && (
             <div className="animate-in fade-in duration-500">
               <header className="mb-6 relative z-10">
                 <h1 className="text-sm md:text-base font-medium text-gray-300">
-                  {isFirstVisit ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
+                  {isFirstVisit
+                    ? `Welcome, ${firstName}`
+                    : `Welcome back, ${firstName}`}
                 </h1>
                 <p className="text-gray-600 mt-1 text-[10px] uppercase tracking-tight">
                   Here's a look at your performance and analytics.
@@ -200,10 +228,15 @@ const Dashboard = () => {
                   <CoinChart />
                 </div>
                 <div className="space-y-5">
-                  <GrowthCircle totalInvested={userData.totalInvested || 0} totalEarned={userData.totalEarned || 0} />
+                  <GrowthCircle
+                    totalInvested={userData.totalInvested || 0}
+                    totalEarned={userData.totalEarned || 0}
+                  />
 
                   <div className="bg-white/5 border border-white/10 p-5 rounded-3xl">
-                    <h3 className="font-bold mb-3 uppercase text-[9px] tracking-wide text-gray-400">Your Referral Link</h3>
+                    <h3 className="font-bold mb-3 uppercase text-[9px] tracking-wide text-gray-400">
+                      Your Referral Link
+                    </h3>
                     <div className="flex items-center gap-2 bg-black/40 p-3 rounded-xl border border-white/5">
                       <input
                         readOnly
@@ -212,8 +245,10 @@ const Dashboard = () => {
                       />
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/signup?ref=${userData.referralId}`);
-                          triggerNotification('LINK COPIED');
+                          navigator.clipboard.writeText(
+                            `${window.location.origin}/signup?ref=${userData.referralId}`,
+                          );
+                          triggerNotification("LINK COPIED");
                         }}
                         className="text-[9px] font-bold hover:text-nirshux-accent transition-colors uppercase"
                       >
@@ -226,20 +261,32 @@ const Dashboard = () => {
                   </div>
 
                   <div className="bg-white/5 border border-white/10 p-5 rounded-3xl text-center">
-                    <h3 className="font-bold mb-3 uppercase text-[10px] tracking-wide text-gray-400 text-left">Action Center</h3>
-                    <button onClick={() => setIsModalOpen(true)} className="w-full py-3.5 bg-nirshux-accent text-black font-bold rounded-2xl hover:scale-[1.02] transition-all uppercase tracking-wide text-xs">Deploy Capital</button>
+                    <h3 className="font-bold mb-3 uppercase text-[10px] tracking-wide text-gray-400 text-left">
+                      Action Center
+                    </h3>
+                    <button
+                      onClick={() => setIsModalOpen(true)}
+                      className="w-full py-3.5 bg-nirshux-accent text-black font-bold rounded-2xl hover:scale-[1.02] transition-all uppercase tracking-wide text-xs"
+                    >
+                      Deploy Capital
+                    </button>
                   </div>
                 </div>
               </div>
 
               <div className="mt-10 bg-white/5 border border-white/10 rounded-3xl p-4 md:p-6 overflow-hidden">
-                <h3 className="text-base font-bold mb-5 uppercase">Recent Transactions</h3>
-                <TransactionTable transactions={userData.transactions || []} limit={5} />
+                <h3 className="text-base font-bold mb-5 uppercase">
+                  Recent Transactions
+                </h3>
+                <TransactionTable
+                  transactions={userData.transactions || []}
+                  limit={5}
+                />
               </div>
             </div>
           )}
 
-          {view === 'active' && (
+          {view === "active" && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
               <header className="mb-6 md:mb-8 relative z-10">
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase leading-none">
@@ -253,13 +300,13 @@ const Dashboard = () => {
             </div>
           )}
 
-          {view === 'history' && (
+          {view === "history" && (
             <div className="animate-in slide-in-from-bottom-4 duration-500">
               <History />
             </div>
           )}
 
-          {view === 'profile' && (
+          {view === "profile" && (
             <ProfileView
               userData={userData}
               onRefresh={fetchDashboardData}
@@ -267,30 +314,40 @@ const Dashboard = () => {
             />
           )}
 
-          {view === 'referrals' && (
+          {view === "referrals" && (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
               <div className="w-10 h-10 border-2 border-nirshux-accent/20 border-t-nirshux-accent rounded-full animate-spin mb-3"></div>
-              <p className="text-gray-500 font-mono text-[9px] uppercase tracking-wide">Referral Module Offline</p>
+              <p className="text-gray-500 font-mono text-[9px] uppercase tracking-wide">
+                Referral Module Offline
+              </p>
             </div>
           )}
-
         </main>
       </div>
 
-      <InvestmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} refreshData={fetchDashboardData} />
-      <DepositModal isOpen={isDepositOpen} onClose={() => setIsDepositOpen(false)} refreshData={fetchDashboardData} />
+      <InvestmentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        refreshData={fetchDashboardData}
+        disabledPlans={userData.disabledPlans || []}
+      />
+      <DepositModal
+        isOpen={isDepositOpen}
+        onClose={() => setIsDepositOpen(false)}
+        refreshData={fetchDashboardData}
+      />
       <WithdrawalModal
         isOpen={isWithdrawOpen}
         onClose={() => setIsWithdrawOpen(false)}
         user={userData}
         onRefresh={() => {
           fetchDashboardData();
-          triggerNotification('WITHDRAWAL STAGED');
+          triggerNotification("WITHDRAWAL STAGED");
         }}
       />
 
       {/* Chat widget — rendered OUTSIDE the flex/main layout to ensure fixed positioning works */}
-      {userData.role === 'admin' ? <AdminChatWidget /> : <ChatWidget />}
+      {userData.role === "admin" ? <AdminChatWidget /> : <ChatWidget />}
     </div>
   );
 };

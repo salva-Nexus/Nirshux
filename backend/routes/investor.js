@@ -285,6 +285,15 @@ router.post("/invest", authMiddleware, async (req, res) => {
 
     const investor = await User.findById(req.user.id);
 
+    // 🔒 Server-side enforcement of admin's per-user plan visibility toggle.
+    // The frontend (InvestmentModal) already filters disabled plans out of
+    // what's shown, but that's cosmetic only — anyone hitting this endpoint
+    // directly (curl, Postman, a modified request) could otherwise still
+    // invest in a plan the admin explicitly disabled for this specific user.
+    if ((investor.disabledPlans || []).includes(planName)) {
+      return res.status(403).json({ msg: "PLAN_NOT_AVAILABLE" });
+    }
+
     // 🔒 PRODUCTION FIX: settle ROI on the existing portfolio and refresh
     // lastRoiCalculation to "now" BEFORE the new stake is added. This closes
     // the drift window at the source — lastRoiCalculation can never again be

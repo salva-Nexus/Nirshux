@@ -2,14 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api";
-
-const ALL_PLANS = [
-  "STANDARD PLAN",
-  "PROMO PLAN",
-  "PREMIUM PLAN",
-  "GOLD-MINING-PLAN",
-  "GARDEN API PLAN",
-];
+import { PLAN_NAMES as ALL_PLANS } from "../constants/plans";
 
 // ── Inline spinner (matches AdminPanel's Spinner) ──────────────────────────────
 const Spinner = ({ size = "sm", dark = false }) => {

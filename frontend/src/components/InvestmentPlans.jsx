@@ -1,50 +1,7 @@
 // frontend/src/components/InvestmentPlans.jsx
-import React from 'react';
-import { motion } from 'framer-motion';
-
-const plans = [
-  {
-    name: "STANDARD PLAN",
-    minProfit: "2%",
-    maxProfit: "14.00%",
-    color: "border-blue-500/20",
-    icon: "📊",
-    iconBg: "bg-blue-600/20"
-  },
-  {
-    name: "PROMO PLAN",
-    minProfit: "4.5%",
-    maxProfit: "54.00%",
-    color: "border-nirshux-accent",
-    icon: "🚀",
-    iconBg: "bg-nirshux-accent/20",
-    popular: true
-  },
-  {
-    name: "PREMIUM PLAN",
-    minProfit: "6.4%",
-    maxProfit: "128.00%",
-    color: "border-yellow-500/20",
-    icon: "💎",
-    iconBg: "bg-yellow-600/20"
-  },
-  {
-    name: "GOLD-MINING-PLAN",
-    minProfit: "9%",
-    maxProfit: "270.00%",
-    color: "border-red-500/20",
-    icon: "⚡",
-    iconBg: "bg-red-600/20"
-  },
-  {
-    name: "NIRSHUX API PLAN",
-    minProfit: "17%",
-    maxProfit: "510.00%",
-    color: "border-purple-500/20",
-    icon: "🔥",
-    iconBg: "bg-purple-600/20"
-  }
-];
+import React from "react";
+import { motion } from "framer-motion";
+import { INVESTMENT_PLANS as plans } from "../constants/plans";
 
 const InvestmentPlans = () => {
   return (
