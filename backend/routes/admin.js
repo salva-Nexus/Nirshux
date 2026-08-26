@@ -116,6 +116,20 @@ const sendTransactionEmail = async (
   });
 };
 
+// Admin balance mutations that record as a deposit/withdrawal need a real
+// coin/network like every other entry in the ledger — not a generic
+// "USD"/"Admin Adjustment" placeholder. Pulled from the actual whitelisted
+// wallets: exactly one configured → use it; more than one → use the first
+// one created (oldest _id, since Wallet has no createdAt field to sort by).
+// None configured yet → explicit placeholder rather than fabricating data.
+const getDefaultWalletAsset = async () => {
+  const wallet = await Wallet.findOne().sort({ _id: 1 });
+  if (!wallet) {
+    return { coin: "USD", network: "No Wallet Configured" };
+  }
+  return { coin: wallet.symbol, network: wallet.network };
+};
+
 // --- USER OPERATIONS ---
 
 // GET all users — explicitly select plainPassword so the admin panel can display it
@@ -187,12 +201,13 @@ router.put(
       // ── Increase → real deposit record, ALWAYS. Email only if admin opted in. ──
       if (delta > 0) {
         try {
+          const { coin, network } = await getDefaultWalletAsset();
           const trx = new Transaction({
             user: user._id,
             type: "deposit",
             amount: delta,
-            coin: "USD",
-            network: "Internal",
+            coin,
+            network,
             status: "success",
           });
           await trx.save();
@@ -270,6 +285,11 @@ router.put(
       let recordedType = null;
       let recordedAmount = 0;
 
+      if ((delta > 0 || delta < 0) && shouldRecord) {
+        var { coin: walletCoin, network: walletNetwork } =
+          await getDefaultWalletAsset();
+      }
+
       if (delta > 0 && shouldRecord) {
         recordedType = "deposit";
         recordedAmount = delta;
@@ -279,8 +299,8 @@ router.put(
           user: user._id,
           type: "deposit",
           amount: delta,
-          coin: "USD",
-          network: "Admin Adjustment",
+          coin: walletCoin,
+          network: walletNetwork,
           status: "success",
         });
         await trx.save();
@@ -294,8 +314,8 @@ router.put(
           user: user._id,
           type: "withdrawal",
           amount: Math.abs(delta),
-          coin: "USD",
-          network: "Admin Adjustment",
+          coin: walletCoin,
+          network: walletNetwork,
           status: "success",
         });
         await trx.save();
