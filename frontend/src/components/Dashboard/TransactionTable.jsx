@@ -1,44 +1,130 @@
-// TransactionTable.jsx
-import React from 'react';
+// frontend/src/components/Dashboard/TransactionTable.jsx
+import React from "react";
+
+const formatAddress = (tx) => {
+  const addr =
+    tx.type === "deposit"
+      ? tx.senderAddress || tx.addressUsed || tx.fromAddress || null
+      : tx.addressUsed || tx.toAddress || tx.destinationAddress || null;
+
+  if (!addr || addr.length < 10) return "—";
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+};
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    pending: "bg-yellow-500/10  text-yellow-400  border-yellow-500/20",
+    failed: "bg-red-500/10     text-red-400     border-red-500/20",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest ${map[status] || map.pending}`}
+    >
+      {status}
+    </span>
+  );
+};
+
+const TypeBadge = ({ type }) => {
+  const isIn =
+    type === "deposit" ||
+    type === "referral_bonus" ||
+    type === "maturity_release";
+  return (
+    <span
+      className={`text-[9px] font-black uppercase tracking-wider ${isIn ? "text-nirshux-accent" : "text-gray-400"}`}
+    >
+      {isIn ? "↓" : "↑"} {type?.replace("_", " ")}
+    </span>
+  );
+};
 
 const TransactionTable = ({ transactions, limit }) => {
-  // We slice the data based on the 'limit' prop (3 for dashboard)
   const displayData = limit ? transactions.slice(0, limit) : transactions;
 
+  // ── FIX: Type, then Amount, then the rest (Address, Asset, Status) ──
+  const columns = ["Type", "Amount", "Address", "Asset", "Status"];
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
+    <div className="overflow-x-auto -mx-1">
+      <table className="w-full text-left border-collapse min-w-[420px] sm:min-w-[540px]">
         <thead>
-          <tr className="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
-            <th className="py-4 px-2 font-medium">Name / Plan</th>
-            <th className="py-4 px-2 font-medium text-center">Date</th>
-            <th className="py-4 px-2 font-medium text-center">Amount</th>
-            <th className="py-4 px-2 font-medium text-right">Status</th>
+          <tr className="border-b border-white/[0.06]">
+            {columns.map((h) => (
+              <th
+                key={h}
+                className="py-2 px-1.5 sm:py-3 sm:px-3 text-[8px] sm:text-[9px] font-black text-gray-600 uppercase tracking-widest whitespace-nowrap"
+              >
+                {h}
+              </th>
+            ))}
           </tr>
         </thead>
-        <tbody className="text-sm">
+        <tbody>
           {displayData.length > 0 ? (
-            displayData.map((tx, index) => (
-              <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                <td className="py-4 px-2 font-medium text-white">{tx.planName || "Deposit"}</td>
-                <td className="py-4 px-2 text-center text-gray-400">
-                  {new Date(tx.date).toLocaleDateString()}
-                </td>
-                <td className="py-4 px-2 text-center text-white font-semibold">
-                  ${tx.amount.toLocaleString()}
-                </td>
-                <td className="py-4 px-2 text-right">
-                  <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${
-                    tx.status === 'completed' ? 'bg-nirshux-accent/20 text-nirshux-accent' : 'bg-yellow-500/20 text-yellow-500'
-                  }`}>
-                    {tx.status.toUpperCase()}
-                  </span>
-                </td>
-              </tr>
-            ))
+            displayData.map((tx, i) => {
+              const isIn =
+                tx.type === "deposit" ||
+                tx.type === "referral_bonus" ||
+                tx.type === "maturity_release";
+
+              return (
+                <tr
+                  key={tx._id || i}
+                  className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group"
+                >
+                  {/* Type */}
+                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                    <TypeBadge type={tx.type} />
+                  </td>
+
+                  {/* Amount */}
+                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                    <span
+                      className={`font-mono font-black text-xs sm:text-sm whitespace-nowrap ${isIn ? "text-white" : "text-gray-400"}`}
+                    >
+                      {isIn ? "+" : "-"}$
+                      {Number(tx.amount || 0).toLocaleString()}
+                    </span>
+                  </td>
+
+                  {/* Address */}
+                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                    <span className="font-mono text-[9px] sm:text-[10px] text-gray-400 bg-white/[0.03] px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md border border-white/[0.06] group-hover:border-white/10 transition-colors whitespace-nowrap">
+                      {formatAddress(tx)}
+                    </span>
+                  </td>
+
+                  {/* Asset / Coin */}
+                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[8px] sm:text-[9px] font-black text-nirshux-accent bg-nirshux-accent/10 px-1.5 sm:px-2 py-0.5 rounded uppercase whitespace-nowrap">
+                        {tx.coin || "USD"}
+                      </span>
+                      {tx.network && tx.network !== "Internal" && (//
+                        <span className="hidden sm:inline text-[9px] text-gray-600 font-mono">
+                          {tx.network}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Status */}
+                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                    <StatusBadge status={tx.status} />
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
-              <td colSpan="4" className="py-10 text-center text-gray-500 italic">No transactions found</td>
+              <td colSpan={columns.length} className="py-16 text-center">
+                <p className="text-gray-600 font-mono text-[10px] uppercase tracking-widest">
+                  No transmissions on record
+                </p>
+              </td>
             </tr>
           )}
         </tbody>

@@ -686,7 +686,9 @@ const AdminPanel = () => {
                         </button>
                         <button
                           onClick={() =>
-                            setExpandedUser(expandedUser === u._id ? null : u._id)
+                            setExpandedUser(
+                              expandedUser === u._id ? null : u._id,
+                            )
                           }
                           className={`w-7 h-7 rounded-lg border border-white/10 flex items-center justify-center transition-transform text-gray-500 ${expandedUser === u._id ? "rotate-180" : ""}`}
                         >

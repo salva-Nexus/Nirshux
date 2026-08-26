@@ -38,7 +38,9 @@ const StatCard = ({ label, value, color }) => {
       <p className="text-[8px] font-bold text-gray-600 uppercase tracking-wider mb-1">
         {label}
       </p>
-      <p className={`font-mono font-black text-sm ${colors[color] || "text-white"}`}>
+      <p
+        className={`font-mono font-black text-sm ${colors[color] || "text-white"}`}
+      >
         {value}
       </p>
     </div>
@@ -49,7 +51,13 @@ const StatCard = ({ label, value, color }) => {
 // Shown before ANY balance change on this page. Direction (deposit/withdrawal)
 // is computed automatically from newBalance vs oldBalance — the admin is just
 // confirming what will get written into the user's transaction history.
-const BalanceConfirmModal = ({ oldBalance, newBalance, onConfirm, onCancel, loading }) => {
+const BalanceConfirmModal = ({
+  oldBalance,
+  newBalance,
+  onConfirm,
+  onCancel,
+  loading,
+}) => {
   const delta = newBalance - oldBalance;
   const isDeposit = delta > 0;
   const isNoop = delta === 0;
@@ -70,14 +78,19 @@ const BalanceConfirmModal = ({ oldBalance, newBalance, onConfirm, onCancel, load
         <h3 className="text-base font-black uppercase tracking-tight text-white mb-5">
           Set balance to{" "}
           <span className="text-nirshux-accent">
-            ${newBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            $
+            {newBalance.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         </h3>
 
         {isNoop ? (
           <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 mb-6">
             <p className="text-[10px] text-gray-400 font-mono uppercase">
-              No change — new balance matches current balance. Nothing will be recorded.
+              No change — new balance matches current balance. Nothing will be
+              recorded.
             </p>
           </div>
         ) : (
@@ -91,7 +104,9 @@ const BalanceConfirmModal = ({ oldBalance, newBalance, onConfirm, onCancel, load
             <div className="flex items-center justify-between mb-2">
               <span
                 className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${
-                  isDeposit ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
+                  isDeposit
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-red-500/15 text-red-400"
                 }`}
               >
                 {isDeposit ? "↑ Deposit" : "↓ Withdrawal"}
@@ -100,14 +115,23 @@ const BalanceConfirmModal = ({ oldBalance, newBalance, onConfirm, onCancel, load
                 className={`font-mono font-black text-lg ${isDeposit ? "text-emerald-400" : "text-red-400"}`}
               >
                 {isDeposit ? "+" : "-"}$
-                {diffAbs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {diffAbs.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
             </div>
             <p className="text-[10px] text-gray-400 leading-relaxed">
               This will be written into the user's transaction history as a{" "}
-              <strong className="text-gray-200">{isDeposit ? "deposit" : "withdrawal"}</strong> of the
-              difference above. Current balance: $
-              {oldBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.
+              <strong className="text-gray-200">
+                {isDeposit ? "deposit" : "withdrawal"}
+              </strong>{" "}
+              of the difference above. Current balance: $
+              {oldBalance.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+              .
             </p>
           </div>
         )}
@@ -177,7 +201,8 @@ const AdminUserView = () => {
   // Generic "set exact value" handler for non-balance stat fields
   const handleSet = async (field, endpoint, value) => {
     const num = parseFloat(value);
-    if (isNaN(num) || value === "") return showToast("ENTER A VALID AMOUNT", "error");
+    if (isNaN(num) || value === "")
+      return showToast("ENTER A VALID AMOUNT", "error");
     if (num < 0) return showToast("AMOUNT CANNOT BE NEGATIVE", "error");
     startLoading(endpoint);
     try {
@@ -195,7 +220,8 @@ const AdminUserView = () => {
   // Balance goes through the confirm card first
   const requestBalanceChange = (value) => {
     const num = parseFloat(value);
-    if (isNaN(num) || value === "") return showToast("ENTER A VALID AMOUNT", "error");
+    if (isNaN(num) || value === "")
+      return showToast("ENTER A VALID AMOUNT", "error");
     if (num < 0) return showToast("AMOUNT CANNOT BE NEGATIVE", "error");
     setBalanceConfirm({ newBalance: num });
   };
@@ -228,8 +254,13 @@ const AdminUserView = () => {
     const loadKey = `inv-${investmentId}`;
     startLoading(loadKey);
     try {
-      await API.put(`/api/admin/user/${userId}/investment/${investmentId}/${action}`);
-      showToast(`INVESTMENT ${action === "pause" ? "PAUSED" : "RESUMED"}`, "success");
+      await API.put(
+        `/api/admin/user/${userId}/investment/${investmentId}/${action}`,
+      );
+      showToast(
+        `INVESTMENT ${action === "pause" ? "PAUSED" : "RESUMED"}`,
+        "success",
+      );
       fetchUser();
     } catch (err) {
       showToast(err.response?.data?.msg || "ACTION FAILED", "error");
@@ -281,26 +312,59 @@ const AdminUserView = () => {
   }
 
   const statFields = [
-    { label: "Available Balance", key: "balance", endpoint: "set-balance", color: "accent" },
-    { label: "Total Deposited", key: "totalDeposited", endpoint: "set-total-deposited", color: "green" },
-    { label: "Total Invested", key: "totalInvested", endpoint: "set-total-invested", color: "blue" },
-    { label: "Total Earned", key: "totalEarned", endpoint: "set-total-earned", color: "accent" },
-    { label: "Total Withdrawn", key: "withdrawn", endpoint: "set-withdrawn", color: "orange" },
+    {
+      label: "Available Balance",
+      key: "balance",
+      endpoint: "set-balance",
+      color: "accent",
+    },
+    {
+      label: "Total Deposited",
+      key: "totalDeposited",
+      endpoint: "set-total-deposited",
+      color: "green",
+    },
+    {
+      label: "Total Invested",
+      key: "totalInvested",
+      endpoint: "set-total-invested",
+      color: "blue",
+    },
+    {
+      label: "Total Earned",
+      key: "totalEarned",
+      endpoint: "set-total-earned",
+      color: "accent",
+    },
+    {
+      label: "Total Withdrawn",
+      key: "withdrawn",
+      endpoint: "set-withdrawn",
+      color: "orange",
+    },
   ];
 
   const txTypeColor = (type) => {
-    if (type === "deposit") return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-    if (type === "withdrawal") return "text-red-400 bg-red-500/10 border-red-500/20";
-    if (type === "investment") return "text-blue-400 bg-blue-500/10 border-blue-500/20";
-    if (type === "referral_bonus") return "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    if (type === "maturity_release") return "text-nirshux-accent bg-nirshux-accent/10 border-nirshux-accent/20";
+    if (type === "deposit")
+      return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+    if (type === "withdrawal")
+      return "text-red-400 bg-red-500/10 border-red-500/20";
+    if (type === "investment")
+      return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+    if (type === "referral_bonus")
+      return "text-amber-400 bg-amber-500/10 border-amber-500/20";
+    if (type === "maturity_release")
+      return "text-nirshux-accent bg-nirshux-accent/10 border-nirshux-accent/20";
     return "text-gray-400 bg-white/5 border-white/10";
   };
 
   const txStatusColor = (status) => {
-    if (status === "success") return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-    if (status === "pending") return "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    if (status === "failed") return "text-red-400 bg-red-500/10 border-red-500/20";
+    if (status === "success")
+      return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+    if (status === "pending")
+      return "text-amber-400 bg-amber-500/10 border-amber-500/20";
+    if (status === "failed")
+      return "text-red-400 bg-red-500/10 border-red-500/20";
     return "text-gray-400 bg-white/5 border-white/10";
   };
 
@@ -322,7 +386,9 @@ const AdminUserView = () => {
           <div
             className={`w-1.5 h-1.5 rounded-full animate-pulse ${toast.type === "error" ? "bg-red-400" : "bg-emerald-400"}`}
           />
-          <span className="font-mono text-[11px] font-bold uppercase tracking-widest">{toast.msg}</span>
+          <span className="font-mono text-[11px] font-bold uppercase tracking-widest">
+            {toast.msg}
+          </span>
         </div>
       )}
 
@@ -354,7 +420,9 @@ const AdminUserView = () => {
               <p className="text-sm font-black uppercase tracking-tight text-white truncate">
                 {user.fullName}
               </p>
-              <p className="text-[9px] font-mono text-gray-500 truncate lowercase">{user.email}</p>
+              <p className="text-[9px] font-mono text-gray-500 truncate lowercase">
+                {user.email}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -390,7 +458,9 @@ const AdminUserView = () => {
                     min="0"
                     placeholder="Exact amount"
                     value={adjusting.value}
-                    onChange={(e) => setAdjusting({ ...adjusting, value: e.target.value })}
+                    onChange={(e) =>
+                      setAdjusting({ ...adjusting, value: e.target.value })
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         key === "balance"
@@ -403,7 +473,10 @@ const AdminUserView = () => {
                   />
                   <div className="flex gap-1.5">
                     <button
-                      disabled={loadingIds.has(endpoint) || loadingIds.has("set-balance")}
+                      disabled={
+                        loadingIds.has(endpoint) ||
+                        loadingIds.has("set-balance")
+                      }
                       onClick={() =>
                         key === "balance"
                           ? requestBalanceChange(adjusting.value)
@@ -486,7 +559,10 @@ const AdminUserView = () => {
                 {activeInvestments.map((inv) => {
                   const start = new Date(inv.startDate).getTime();
                   const end = new Date(inv.endDate).getTime();
-                  const progress = Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100));
+                  const progress = Math.min(
+                    100,
+                    Math.max(0, ((Date.now() - start) / (end - start)) * 100),
+                  );
                   const isPaused = inv.status === "paused";
 
                   return (
@@ -500,7 +576,9 @@ const AdminUserView = () => {
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <p className="text-xs font-bold text-white mb-0.5">{inv.planName}</p>
+                          <p className="text-xs font-bold text-white mb-0.5">
+                            {inv.planName}
+                          </p>
                           <p className="text-[9px] text-gray-500 uppercase tracking-wide">
                             {inv.dailyRoi}% daily
                           </p>
@@ -518,15 +596,22 @@ const AdminUserView = () => {
 
                       <div className="grid grid-cols-2 gap-2 mb-3">
                         <div>
-                          <p className="text-[8px] text-gray-500 uppercase tracking-wide mb-0.5">Staked</p>
+                          <p className="text-[8px] text-gray-500 uppercase tracking-wide mb-0.5">
+                            Staked
+                          </p>
                           <p className="text-sm font-mono font-black text-white">
                             ${inv.amount?.toLocaleString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[8px] text-gray-500 uppercase tracking-wide mb-0.5">Accrued</p>
+                          <p className="text-[8px] text-gray-500 uppercase tracking-wide mb-0.5">
+                            Accrued
+                          </p>
                           <p className="text-sm font-mono font-black text-emerald-400">
-                            +${(inv.accrued || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            +$
+                            {(inv.accrued || 0).toLocaleString(undefined, {
+                              maximumFractionDigits: 2,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -534,7 +619,9 @@ const AdminUserView = () => {
                       <div className="mb-3">
                         <div className="flex justify-between text-[8px] text-gray-500 mb-1">
                           <span>Progress</span>
-                          <span className="text-nirshux-accent">{progress.toFixed(1)}%</span>
+                          <span className="text-nirshux-accent">
+                            {progress.toFixed(1)}%
+                          </span>
                         </div>
                         <div className="h-1 rounded-full bg-white/10 overflow-hidden">
                           <div
@@ -549,20 +636,31 @@ const AdminUserView = () => {
                       </div>
 
                       <div className="flex justify-between text-[8px] text-gray-600 pb-3 mb-3 border-b border-white/5 font-mono">
-                        <span>{new Date(inv.startDate).toLocaleDateString()}</span>
-                        <span>{new Date(inv.endDate).toLocaleDateString()}</span>
+                        <span>
+                          {new Date(inv.startDate).toLocaleDateString()}
+                        </span>
+                        <span>
+                          {new Date(inv.endDate).toLocaleDateString()}
+                        </span>
                       </div>
 
                       <button
                         disabled={loadingIds.has(`inv-${inv._id}`)}
-                        onClick={() => handleInvestmentAction(inv._id, isPaused ? "resume" : "pause")}
+                        onClick={() =>
+                          handleInvestmentAction(
+                            inv._id,
+                            isPaused ? "resume" : "pause",
+                          )
+                        }
                         className={`w-full py-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 border disabled:opacity-50 disabled:cursor-not-allowed ${
                           isPaused
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20"
                             : "bg-amber-500/10 text-amber-400 border-amber-500/25 hover:bg-amber-500/20"
                         }`}
                       >
-                        {loadingIds.has(`inv-${inv._id}`) && <Spinner size="xs" />}
+                        {loadingIds.has(`inv-${inv._id}`) && (
+                          <Spinner size="xs" />
+                        )}
                         {isPaused ? "▶ Resume Accrual" : "⏸ Pause Accrual"}
                       </button>
                     </div>
@@ -584,18 +682,27 @@ const AdminUserView = () => {
             {ALL_PLANS.map((planName) => {
               const isDisabled = (user.disabledPlans || []).includes(planName);
               return (
-                <div key={planName} className="flex items-center justify-between gap-3 px-5 py-3.5 flex-wrap hover:bg-white/[0.02] transition-colors">
+                <div
+                  key={planName}
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 flex-wrap hover:bg-white/[0.02] transition-colors"
+                >
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        isDisabled ? "bg-red-500/50" : "bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+                        isDisabled
+                          ? "bg-red-500/50"
+                          : "bg-emerald-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"
                       }`}
                     />
                     <div>
-                      <p className={`text-xs font-bold mb-0.5 ${isDisabled ? "text-gray-600 line-through" : "text-white"}`}>
+                      <p
+                        className={`text-xs font-bold mb-0.5 ${isDisabled ? "text-gray-600 line-through" : "text-white"}`}
+                      >
                         {planName}
                       </p>
-                      <p className={`text-[8px] uppercase tracking-wide ${isDisabled ? "text-gray-700" : "text-gray-500"}`}>
+                      <p
+                        className={`text-[8px] uppercase tracking-wide ${isDisabled ? "text-gray-700" : "text-gray-500"}`}
+                      >
                         {isDisabled ? "Hidden from user" : "Visible to user"}
                       </p>
                     </div>
@@ -609,7 +716,9 @@ const AdminUserView = () => {
                         : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
                     }`}
                   >
-                    {loadingIds.has(`plan-${planName}`) && <Spinner size="xs" />}
+                    {loadingIds.has(`plan-${planName}`) && (
+                      <Spinner size="xs" />
+                    )}
                     {isDisabled ? "Enable" : "Disable"}
                   </button>
                 </div>
@@ -628,7 +737,15 @@ const AdminUserView = () => {
                 <table className="w-full border-collapse min-w-[560px]">
                   <thead>
                     <tr className="bg-white/[0.02] border-b border-white/[0.06]">
-                      {["Date", "Type", "Amount", "Asset", "Address", "Network", "Status"].map((h) => (
+                      {[
+                        "Date",
+                        "Type",
+                        "Amount",
+                        "Asset",
+                        "Address",
+                        "Network",
+                        "Status",
+                      ].map((h) => (
                         <th
                           key={h}
                           className="px-4 py-2.5 text-left text-[8px] font-bold text-gray-500 uppercase tracking-widest"
@@ -640,28 +757,53 @@ const AdminUserView = () => {
                   </thead>
                   <tbody>
                     {user.transactions.map((tx, i) => (
-                      <tr key={tx._id || i} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                      <tr
+                        key={tx._id || i}
+                        className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                      >
                         <td className="px-4 py-3 text-[10px] text-gray-500 font-mono whitespace-nowrap">
-                          {new Date(tx.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
+                          {new Date(tx.date).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "2-digit",
+                          })}
                           <span className="block text-[8px] text-gray-700">
-                            {new Date(tx.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(tx.date).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`text-[8px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md border ${txTypeColor(tx.type)}`}>
+                          <span
+                            className={`text-[8px] font-black uppercase tracking-wide px-2 py-0.5 rounded-md border ${txTypeColor(tx.type)}`}
+                          >
                             {tx.type?.replace(/_/g, " ")}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs font-mono font-black text-white whitespace-nowrap">
-                          ${(tx.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          $
+                          {(tx.amount || 0).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </td>
-                        <td className="px-4 py-3 text-[10px] font-mono text-nirshux-accent">{tx.coin || "—"}</td>
-                        <td className="px-4 py-3 text-[10px] font-mono text-gray-500 max-w-[160px] truncate" title={tx.addressUsed || ""}>
+                        <td className="px-4 py-3 text-[10px] font-mono text-nirshux-accent">
+                          {tx.coin || "—"}
+                        </td>
+                        <td
+                          className="px-4 py-3 text-[10px] font-mono text-gray-500 max-w-[160px] truncate"
+                          title={tx.addressUsed || ""}
+                        >
                           {tx.addressUsed || "—"}
                         </td>
-                        <td className="px-4 py-3 text-[10px] text-gray-400">{tx.network || "—"}</td>
+                        <td className="px-4 py-3 text-[10px] text-gray-400">
+                          {tx.network || "—"}
+                        </td>
                         <td className="px-4 py-3">
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${txStatusColor(tx.status)}`}>
+                          <span
+                            className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${txStatusColor(tx.status)}`}
+                          >
                             {tx.status}
                           </span>
                         </td>
@@ -683,7 +825,9 @@ const EmptyState = ({ icon, label }) => (
     <div className="w-16 h-16 bg-white/[0.03] border border-white/[0.06] rounded-2xl flex items-center justify-center mb-4 text-3xl">
       {icon}
     </div>
-    <p className="text-gray-600 font-mono text-[11px] uppercase tracking-widest">{label}</p>
+    <p className="text-gray-600 font-mono text-[11px] uppercase tracking-widest">
+      {label}
+    </p>
   </div>
 );
 
