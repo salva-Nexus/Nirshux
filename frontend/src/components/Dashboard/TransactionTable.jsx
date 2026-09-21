@@ -11,6 +11,15 @@ const formatAddress = (tx) => {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 };
 
+// Internal transaction types (maturity_release, referral_bonus, investment)
+// carry bookkeeping labels the user shouldn't need to parse. Coin fields for
+// these are also stuffed with notes like "USD (PREMIUM PLAN Matured)" —
+// strip that down to just the asset.
+const formatCoin = (coin) => {
+  if (!coin) return "USD";
+  return coin.split("(")[0].trim() || "USD";
+};
+
 const StatusBadge = ({ status }) => {
   const map = {
     success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -32,11 +41,13 @@ const TypeBadge = ({ type }) => {
     type === "deposit" ||
     type === "referral_bonus" ||
     type === "maturity_release";
+  // User only ever needs to know: did money come in, or go out.
+  // "maturity release" / "referral bonus" are internal ledger labels.
   return (
     <span
       className={`text-[9px] font-black uppercase tracking-wider ${isIn ? "text-nirshux-accent" : "text-gray-400"}`}
     >
-      {isIn ? "↓" : "↑"} {type?.replace("_", " ")}
+      {isIn ? "↓ Deposit" : "↑ Withdrawal"}
     </span>
   );
 };
@@ -101,13 +112,14 @@ const TransactionTable = ({ transactions, limit }) => {
                   <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[8px] sm:text-[9px] font-black text-nirshux-accent bg-nirshux-accent/10 px-1.5 sm:px-2 py-0.5 rounded uppercase whitespace-nowrap">
-                        {tx.coin || "USD"}
+                        {formatCoin(tx.coin)}
                       </span>
-                      {tx.network && tx.network !== "Internal" && (//
-                        <span className="hidden sm:inline text-[9px] text-gray-600 font-mono">
-                          {tx.network}
-                        </span>
-                      )}
+                      {tx.network &&
+                        !/protocol|bonus|internal/i.test(tx.network) && (
+                          <span className="hidden sm:inline text-[9px] text-gray-600 font-mono">
+                            {tx.network}
+                          </span>
+                        )}
                     </div>
                   </td>
 

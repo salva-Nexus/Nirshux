@@ -1,20 +1,39 @@
-// History.jsx - FIXED: Removed weekly grouping
-import React, { useState, useEffect } from 'react';
-import API from '../api';
+// frontend/src/components/History.jsx
+import React, { useState, useEffect } from "react";
+import API from "../api";
+
+const formatCoin = (coin) => {
+  if (!coin) return "USD";
+  return coin.split("(")[0].trim() || "USD";
+};
+
+const StatusBadge = ({ status }) => {
+  const map = {
+    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    failed: "bg-red-500/10 text-red-400 border-red-500/20",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest ${map[status] || map.pending}`}
+    >
+      {status}
+    </span>
+  );
+};
 
 const History = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedPaths, setExpandedPaths] = useState(new Set());
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await API.get('/api/investor/history', {
-          headers: { 'x-auth-token': token }
+        const token = localStorage.getItem("token");
+        const res = await API.get("/api/investor/history", {
+          headers: { "x-auth-token": token },
         });
-        console.log("Transaction Data Received:", res.data);
         setTransactions(res.data);
       } catch (err) {
         console.error("History Fetch Error", err);
@@ -25,105 +44,116 @@ const History = () => {
     fetchHistory();
   }, []);
 
-  const groupTransactions = (data) => {
-    if (!data || data.length === 0) return {};
-    
-    const tree = {};
-    data.forEach(tx => {
-      const dateValue = tx.date || tx.createdAt || tx.timestamp;
-      if (!dateValue) return;
+  const sorted = [...transactions].sort((a, b) => {
+    const da = new Date(a.date || a.createdAt || a.timestamp || 0);
+    const db = new Date(b.date || b.createdAt || b.timestamp || 0);
+    return db - da;
+  });
 
-      const d = new Date(dateValue);
-      if (isNaN(d.getTime())) return;
-
-      const year = d.getFullYear();
-      const monthIdx = d.getMonth();
-      const monthName = d.toLocaleString('default', { month: 'long' });
-      const semester = monthIdx < 6 ? 'H1 (Jan-Jun)' : 'H2 (Jul-Dec)';
-      const day = d.toLocaleDateString('default', { weekday: 'long', day: 'numeric', month: 'short' });
-
-      // FIXED: Year → Semester → Month → Day (NO WEEKLY)
-      if (!tree[year]) tree[year] = {};
-      if (!tree[year][semester]) tree[year][semester] = {};
-      if (!tree[year][semester][monthName]) tree[year][semester][monthName] = {};
-      if (!tree[year][semester][monthName][day]) tree[year][semester][monthName][day] = [];
-
-      tree[year][semester][monthName][day].push(tx);
-    });
-    return tree;
-  };
-
-  const toggle = (path) => {
-    const newPaths = new Set(expandedPaths);
-    newPaths.has(path) ? newPaths.delete(path) : newPaths.add(path);
-    setExpandedPaths(newPaths);
-  };
-
-  const groupedData = groupTransactions(transactions);
-
-  const Folder = ({ title, children, path, level }) => {
-    const isOpen = expandedPaths.has(path);
+  if (loading) {
     return (
-      <div className="mb-2">
-        <button 
-          onClick={() => toggle(path)}
-          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${isOpen ? 'bg-white/5 text-nirshux-accent' : 'text-gray-500 hover:text-white'}`}
-          style={{ marginLeft: `${level * 12}px` }}
-        >
-          <span className="text-[10px]">{isOpen ? '▼' : '▶'}</span>
-          <span className="uppercase text-[11px] font-black tracking-widest">{title}</span>
-        </button>
-        {isOpen && <div className="mt-1 border-l border-white/5 ml-4">{children}</div>}
+      <div className="p-10 text-nirshux-accent font-mono text-xs uppercase tracking-widest animate-pulse">
+        Loading history...
       </div>
     );
-  };
-
-  if (loading) return <div className="p-10 text-nirshux-accent font-mono animate-pulse">DECRYPTING ARCHIVES...</div>;
+  }
 
   return (
-    <div className="p-4 xl:p-10 max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="mb-10">
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Forensic <span className="text-nirshux-accent">History</span></h1>
-        <p className="text-gray-500 text-[10px] uppercase font-mono mt-2">Nesting Protocol: Year → Semester → Month → Day</p>
+    <div className="p-4 xl:p-10 max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tight">
+          Transaction <span className="text-nirshux-accent">History</span>
+        </h1>
+        <p className="text-gray-500 text-[10px] uppercase font-mono mt-2">
+          {sorted.length} total {sorted.length === 1 ? "record" : "records"}
+        </p>
       </div>
 
-      {transactions.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="border border-dashed border-white/10 rounded-3xl p-20 text-center">
-            <p className="text-gray-600 font-mono text-xs uppercase tracking-[0.3em]">No Transmissions Found in Archives</p>
+          <p className="text-gray-600 font-mono text-xs uppercase tracking-[0.3em]">
+            No transactions found
+          </p>
         </div>
       ) : (
-        Object.keys(groupedData).sort().reverse().map(year => (
-          <Folder key={year} title={year} path={year} level={0}>
-            {Object.keys(groupedData[year]).map(sem => (
-              <Folder key={sem} title={sem} path={`${year}-${sem}`} level={1}>
-                {Object.keys(groupedData[year][sem]).map(month => (
-                  <Folder key={month} title={month} path={`${year}-${sem}-${month}`} level={2}>
-                    {Object.keys(groupedData[year][sem][month]).map(day => (
-                      <Folder key={day} title={day} path={`${year}-${sem}-${month}-${day}`} level={3}>
-                        <div className="space-y-2 p-2">
-                          {groupedData[year][sem][month][day].map(tx => (
-                            <div key={tx._id} className="flex items-center justify-between bg-white/[0.02] border border-white/5 p-4 rounded-2xl hover:border-nirshux-accent/30 transition-all">
-                              <div>
-                                <p className="text-white font-bold text-xs uppercase">{tx.type || 'Transaction'}</p>
-                                <p className="text-[9px] text-gray-500 font-mono">{tx.coin || 'N/A'} ({tx.network || 'Network'})</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-white font-black text-sm">${tx.amount?.toLocaleString()}</p>
-                                <p className={`text-[8px] font-bold uppercase ${tx.status === 'success' || tx.status === 'completed' ? 'text-nirshux-accent' : 'text-red-500'}`}>
-                                  {tx.status}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </Folder>
-                    ))}
-                  </Folder>
-                ))}
-              </Folder>
-            ))}
-          </Folder>
-        ))
+        <div className="bg-[#161A1E] border border-white/5 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[560px]">
+              <thead>
+                <tr className="border-b border-white/[0.06] bg-white/[0.02]">
+                  {["Date", "Type", "Amount", "Asset", "Status"].map((h) => (
+                    <th
+                      key={h}
+                      className="py-3 px-4 text-[9px] font-black text-gray-600 uppercase tracking-widest whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((tx, i) => {
+                  const isIn =
+                    tx.type === "deposit" ||
+                    tx.type === "referral_bonus" ||
+                    tx.type === "maturity_release";
+                  const dateValue = tx.date || tx.createdAt || tx.timestamp;
+                  const d = dateValue ? new Date(dateValue) : null;
+
+                  return (
+                    <tr
+                      key={tx._id || i}
+                      className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                    >
+                      <td className="py-3 px-4 text-[10px] text-gray-500 font-mono whitespace-nowrap">
+                        {d && !isNaN(d.getTime()) ? (
+                          <>
+                            {d.toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "2-digit",
+                            })}
+                            <span className="block text-[8px] text-gray-700">
+                              {d.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`text-[9px] font-black uppercase tracking-wider ${isIn ? "text-nirshux-accent" : "text-gray-400"}`}
+                        >
+                          {isIn ? "↓ Deposit" : "↑ Withdrawal"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`font-mono font-black text-sm whitespace-nowrap ${isIn ? "text-white" : "text-gray-400"}`}
+                        >
+                          {isIn ? "+" : "-"}$
+                          {Number(tx.amount || 0).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-[9px] font-black text-nirshux-accent bg-nirshux-accent/10 px-2 py-0.5 rounded uppercase whitespace-nowrap">
+                          {formatCoin(tx.coin)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <StatusBadge status={tx.status} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   );
