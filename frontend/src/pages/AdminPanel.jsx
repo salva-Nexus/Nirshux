@@ -663,7 +663,7 @@ const AdminPanel = () => {
                       <div className="flex items-center gap-3 md:gap-6 shrink-0">
                         <div className="text-right hidden sm:block">
                           <p className="text-[9px] text-gray-600 uppercase font-bold mb-1">
-                            Balance
+                            Available Balance
                           </p>
                           <p className="font-mono font-black text-nirshux-accent">
                             ${u.balance?.toLocaleString()}
@@ -718,7 +718,7 @@ const AdminPanel = () => {
                         {/* Stats Summary */}
                         <div className="sm:col-span-2 lg:col-span-1 grid grid-cols-2 gap-3">
                           <StatCard
-                            label="Balance"
+                            label="Available Balance"
                             value={`$${u.balance?.toLocaleString()}`}
                             color="accent"
                           />
@@ -741,7 +741,7 @@ const AdminPanel = () => {
 
                         {/* Adjust Balance */}
                         <MutateCard
-                          label="Adjust Balance"
+                          label="Adjust Available Balance"
                           accentClass="nirshux-accent"
                           inputClass="text-nirshux-accent border-nirshux-accent/30 focus:border-nirshux-accent"
                           addBtnClass="bg-nirshux-accent text-black hover:bg-nirshux-accent/90"
@@ -759,7 +759,7 @@ const AdminPanel = () => {
                           }}
                           onAdd={() => executeAdjustment(u._id, "add")}
                           onSub={() => executeAdjustment(u._id, "sub")}
-                          buttonLabel="Mutate Balance"
+                          buttonLabel="Mutate Available Balance"
                           sendEmail={adjSendEmail}
                           onToggleSendEmail={setAdjSendEmail}
                           addLoading={isLoading(`balance-add-${u._id}`)}

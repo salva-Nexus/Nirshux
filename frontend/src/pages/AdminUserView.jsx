@@ -374,12 +374,6 @@ const AdminUserView = () => {
       color: "accent",
     },
     {
-      label: "Total Deposited",
-      key: "totalDeposited",
-      endpoint: "set-total-deposited",
-      color: "green",
-    },
-    {
       label: "Total Invested",
       key: "totalInvested",
       endpoint: "set-total-invested",
@@ -499,11 +493,15 @@ const AdminUserView = () => {
 
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Stat cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
           {statFields.map(({ label, key, endpoint, color }) => (
             <div
               key={key}
-              className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/10 relative"
+              className={`p-4 rounded-2xl bg-gradient-to-b from-white/[0.05] to-white/[0.02] border relative transition-all ${
+                key === "balance"
+                  ? "border-nirshux-accent/30 shadow-[0_0_25px_rgba(0,242,195,0.08)]"
+                  : "border-white/10"
+              }`}
             >
               <p className="text-[8px] text-gray-500 uppercase tracking-widest font-bold mb-2">
                 {label}

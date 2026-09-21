@@ -6,11 +6,15 @@ const ActiveInvestments = ({ user }) => {
     if (inv.status !== 'active') return acc;
     
     if (!acc[inv.planName]) {
-      acc[inv.planName] = { ...inv }; 
+      acc[inv.planName] = { ...inv };
     } else {
       acc[inv.planName].amount += inv.amount;
-      acc[inv.planName].accrued = (acc[inv.planName].accrued || 0) + (inv.accrued || 0);
-      
+      acc[inv.planName].accrued =
+        (acc[inv.planName].accrued || 0) + (inv.accrued || 0);
+
+      if (new Date(inv.startDate) < new Date(acc[inv.planName].startDate)) {
+        acc[inv.planName].startDate = inv.startDate;
+      }
       if (new Date(inv.endDate) > new Date(acc[inv.planName].endDate)) {
         acc[inv.planName].endDate = inv.endDate;
       }

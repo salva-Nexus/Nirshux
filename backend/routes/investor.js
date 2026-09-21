@@ -131,9 +131,12 @@ const calculateRoi = async (user) => {
     // UPDATE TOTAL EARNED WITH ALL NEW ACCRUED PROFITS
     user.totalEarned += totalNewAccrued;
 
-    // Remove completed plans
+    // 🔒 FIX: only strip investments that matured to "completed".
+    // The old filter kept ONLY status === "active", which silently deleted
+    // any "paused" investment the moment any other plan on the account
+    // triggered a recalculation.
     user.activeInvestments = user.activeInvestments.filter(
-      (inv) => inv.status === "active",
+      (inv) => inv.status !== "completed",
     );
     user.lastRoiCalculation = now;
     await user.save();
