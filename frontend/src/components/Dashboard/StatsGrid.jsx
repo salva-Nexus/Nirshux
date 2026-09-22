@@ -1,144 +1,79 @@
 import React from "react";
 
-const formatAddress = (tx) => {
-  const addr =
-    tx.type === "deposit"
-      ? tx.senderAddress || tx.addressUsed || tx.fromAddress || null
-      : tx.addressUsed || tx.toAddress || tx.destinationAddress || null;
+const money = (value) =>
+  `$${Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
 
-  if (!addr || addr.length < 10) return "—";
-  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-};
-
-const formatCoin = (coin) => {
-  if (!coin) return "USD";
-  return coin.split("(")[0].trim() || "USD";
-};
-
-const StatusBadge = ({ status }) => {
-  const normalized = String(status || "pending").toLowerCase();
-  const map = {
-    success: "border-emerald-400/15 bg-emerald-400/10 text-emerald-400",
-    completed: "border-emerald-400/15 bg-emerald-400/10 text-emerald-400",
-    pending: "border-amber-400/15 bg-amber-400/10 text-amber-400",
-    failed: "border-red-400/15 bg-red-400/10 text-red-400",
-  };
+const StatsGrid = ({ userData }) => {
+  const stats = [
+    {
+      label: "Total Invested",
+      value: money(userData.totalInvested),
+      icon: "◆",
+    },
+    { label: "Total Earned", value: money(userData.totalEarned), icon: "↗" },
+    { label: "Total Withdrawn", value: money(userData.withdrawn), icon: "↑" },
+  ];
 
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-widest ${map[normalized] || map.pending}`}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {normalized}
-    </span>
+    <section className="space-y-3">
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-nirshux-accent/20 bg-gradient-to-br from-nirshux-accent/[0.12] via-[#11161A] to-[#0D1013] p-5 md:p-6 shadow-[0_18px_55px_rgba(0,0,0,0.2)]">
+        <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-nirshux-accent/[0.07] blur-3xl" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-nirshux-accent/30 to-transparent" />
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-nirshux-accent shadow-[0_0_10px_rgba(0,242,195,0.8)]" />
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-nirshux-accent">
+                Available Balance
+              </p>
+            </div>
+            <p className="text-3xl md:text-4xl font-black tracking-[-0.04em] text-white">
+              {money(userData.balance)}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2">
+            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-600">
+              Account liquidity
+            </p>
+            <p className="mt-1 text-[10px] font-bold text-gray-400">
+              Ready to deploy
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="group rounded-[1.5rem] border border-white/[0.06] bg-[#11161A] p-5
+              transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.11]
+              hover:bg-[#13191D] hover:shadow-[0_18px_40px_rgba(0,0,0,0.18)]"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.035] border border-white/[0.06] text-[11px] text-gray-500 group-hover:text-nirshux-accent group-hover:bg-nirshux-accent/10">
+                {stat.icon}
+              </span>
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-700">
+                Portfolio
+              </span>
+            </div>
+            <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-600">
+              {stat.label}
+            </p>
+            <p className="mt-1.5 text-xl font-black tracking-tight text-white">
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 };
 
-const TypeBadge = ({ type }) => {
-  const isIn =
-    type === "deposit" ||
-    type === "referral_bonus" ||
-    type === "maturity_release";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.16em] ${isIn ? "text-nirshux-accent" : "text-gray-500"}`}
-    >
-      <span className="text-[11px]">{isIn ? "↓" : "↑"}</span>
-      {isIn ? "Incoming" : "Outgoing"}
-    </span>
-  );
-};
-
-const TransactionTable = ({ transactions = [], limit }) => {
-  const displayData = limit ? transactions.slice(0, limit) : transactions;
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[650px] border-collapse text-left">
-        <thead>
-          <tr className="border-b border-white/[0.06]">
-            {["Transaction", "Amount", "Address", "Asset", "Status"].map(
-              (heading) => (
-                <th
-                  key={heading}
-                  className="px-3 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-gray-600 first:pl-1"
-                >
-                  {heading}
-                </th>
-              ),
-            )}
-          </tr>
-        </thead>
-
-        <tbody>
-          {displayData.length > 0 ? (
-            displayData.map((tx, i) => {
-              const isIn =
-                tx.type === "deposit" ||
-                tx.type === "referral_bonus" ||
-                tx.type === "maturity_release";
-
-              return (
-                <tr
-                  key={tx._id || i}
-                  className="group border-b border-white/[0.035] transition-colors hover:bg-white/[0.018]"
-                >
-                  <td className="px-3 py-4 first:pl-1">
-                    <TypeBadge type={tx.type} />
-                  </td>
-
-                  <td className="px-3 py-4">
-                    <span
-                      className={`font-mono text-xs font-black ${isIn ? "text-white" : "text-gray-400"}`}
-                    >
-                      {isIn ? "+" : "-"}$
-                      {Number(tx.amount || 0).toLocaleString()}
-                    </span>
-                  </td>
-
-                  <td className="px-3 py-4">
-                    <span className="rounded-lg border border-white/[0.06] bg-white/[0.025] px-2 py-1 font-mono text-[9px] text-gray-500">
-                      {formatAddress(tx)}
-                    </span>
-                  </td>
-
-                  <td className="px-3 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md border border-nirshux-accent/10 bg-nirshux-accent/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-wider text-nirshux-accent">
-                        {formatCoin(tx.coin)}
-                      </span>
-                      {tx.network &&
-                        !/protocol|bonus|internal/i.test(tx.network) && (
-                          <span className="text-[8px] font-mono text-gray-700">
-                            {tx.network}
-                          </span>
-                        )}
-                    </div>
-                  </td>
-
-                  <td className="px-3 py-4">
-                    <StatusBadge status={tx.status} />
-                  </td>
-                </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan={5} className="py-16 text-center">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.025] text-gray-700">
-                  ◷
-                </div>
-                <p className="mt-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-600">
-                  No transmissions on record
-                </p>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
-export default TransactionTable;
+export default StatsGrid;

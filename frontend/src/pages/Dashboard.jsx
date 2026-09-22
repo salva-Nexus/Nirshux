@@ -170,9 +170,7 @@ const Dashboard = () => {
           {isProfileOpen && (
             <div className="absolute right-0 mt-3 w-64 animate-in fade-in slide-in-from-top-2 rounded-2xl border border-white/[0.08] bg-[#11161A] p-2 shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
               <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4">
-                <p className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-600">
-                  Available balance
-                </p>
+                <p className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-600">Available balance</p>
                 <p className="mt-1.5 font-mono text-xl font-black text-nirshux-accent">
                   ${(userData.balance || 0).toLocaleString()}
                 </p>
@@ -220,9 +218,7 @@ const Dashboard = () => {
                     </span>
                   </div>
                   <h1 className="text-2xl font-black tracking-[-0.04em] text-white md:text-3xl">
-                    {isFirstVisit
-                      ? `Welcome, ${firstName}`
-                      : `Welcome back, ${firstName}`}
+                    {isFirstVisit ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
                   </h1>
                   <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-gray-600">
                     Your capital, performance and activity at a glance.
@@ -261,9 +257,7 @@ const Dashboard = () => {
                         <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-600">
                           Referral network
                         </p>
-                        <h3 className="mt-1 text-sm font-black uppercase text-white">
-                          Your link
-                        </h3>
+                        <h3 className="mt-1 text-sm font-black uppercase text-white">Your link</h3>
                       </div>
                       <span className="text-nirshux-accent">◎</span>
                     </div>
@@ -286,8 +280,7 @@ const Dashboard = () => {
                     </div>
 
                     <p className="mt-2 text-[8px] leading-relaxed text-gray-700">
-                      Share your referral link to participate in the referral
-                      program.
+                      Share your referral link to participate in the referral program.
                     </p>
                   </div>
 
@@ -309,21 +302,14 @@ const Dashboard = () => {
               <section className="mt-5 overflow-hidden rounded-[1.75rem] border border-white/[0.07] bg-[#11161A] p-4 md:p-6">
                 <div className="mb-5 flex items-end justify-between">
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-600">
-                      Ledger
-                    </p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-600">Ledger</p>
                     <h3 className="mt-1 text-base font-black uppercase tracking-tight text-white">
                       Recent transactions
                     </h3>
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-700">
-                    Last 5
-                  </span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-700">Last 5</span>
                 </div>
-                <TransactionTable
-                  transactions={userData.transactions || []}
-                  limit={5}
-                />
+                <TransactionTable transactions={userData.transactions || []} limit={5} />
               </section>
             </div>
           )}
@@ -331,9 +317,7 @@ const Dashboard = () => {
           {view === "active" && (
             <div className="mx-auto max-w-[1500px] animate-in slide-in-from-bottom-3 duration-500">
               <header className="mb-7">
-                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-nirshux-accent">
-                  Portfolio
-                </p>
+                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-nirshux-accent">Portfolio</p>
                 <h1 className="mt-1 text-2xl font-black uppercase tracking-[-0.04em]">
                   Active <span className="text-nirshux-accent">stakes</span>
                 </h1>
