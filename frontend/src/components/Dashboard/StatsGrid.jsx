@@ -29,7 +29,7 @@ const StatsGrid = ({ userData }) => {
         <p className="text-nirshux-accent text-[11px] font-bold uppercase tracking-widest mb-2">
           Available Balance
         </p>
-        <p className="text-white text-3xl font-black">
+        <p className="text-white text-xl font-bold">
           ${(userData.balance || 0).toLocaleString()}
         </p>
       </div>
