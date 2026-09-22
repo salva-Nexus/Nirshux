@@ -9,14 +9,39 @@ const Sidebar = ({
   setView,
 }) => {
   const menuItems = [
-    { id: "oversight", label: "Overview", icon: "◈", action: () => setView("oversight") },
+    {
+      id: "oversight",
+      label: "Overview",
+      icon: "◈",
+      action: () => setView("oversight"),
+    },
     { id: "deposit", label: "Deposit", icon: "↓", action: openDeposit },
     { id: "withdraw", label: "Withdraw", icon: "↑", action: openWithdraw },
     { id: "invest", label: "Invest", icon: "◆", action: openInvest },
-    { id: "active", label: "Active Plans", icon: "◉", action: () => setView("active") },
-    { id: "history", label: "History", icon: "◷", action: () => setView("history") },
-    { id: "profile", label: "Profile", icon: "○", action: () => setView("profile") },
-    { id: "referrals", label: "Referrals", icon: "◎", action: () => setView("referrals") },
+    {
+      id: "active",
+      label: "Active Plans",
+      icon: "◉",
+      action: () => setView("active"),
+    },
+    {
+      id: "history",
+      label: "History",
+      icon: "◷",
+      action: () => setView("history"),
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      icon: "○",
+      action: () => setView("profile"),
+    },
+    {
+      id: "referrals",
+      label: "Referrals",
+      icon: "◎",
+      action: () => setView("referrals"),
+    },
   ];
 
   return (
@@ -62,10 +87,12 @@ const Sidebar = ({
                 text-gray-500 hover:text-white hover:bg-white/[0.045]
                 border border-transparent hover:border-white/[0.06] transition-all duration-200"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
                 bg-white/[0.035] border border-white/[0.06] text-sm text-gray-500
                 group-hover:bg-nirshux-accent/10 group-hover:border-nirshux-accent/20
-                group-hover:text-nirshux-accent transition-all">
+                group-hover:text-nirshux-accent transition-all"
+              >
                 {item.icon}
               </span>
 

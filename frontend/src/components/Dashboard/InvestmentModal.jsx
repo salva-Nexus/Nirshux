@@ -114,11 +114,13 @@ const InvestmentModal = ({
           </div>
 
           {status.msg && (
-            <div className={`mx-6 mt-6 rounded-2xl border p-4 text-[9px] font-black uppercase tracking-[0.14em] md:mx-8 ${
-              status.type === "error"
-                ? "border-red-400/15 bg-red-400/[0.06] text-red-400"
-                : "border-nirshux-accent/15 bg-nirshux-accent/[0.06] text-nirshux-accent"
-            }`}>
+            <div
+              className={`mx-6 mt-6 rounded-2xl border p-4 text-[9px] font-black uppercase tracking-[0.14em] md:mx-8 ${
+                status.type === "error"
+                  ? "border-red-400/15 bg-red-400/[0.06] text-red-400"
+                  : "border-nirshux-accent/15 bg-nirshux-accent/[0.06] text-nirshux-accent"
+              }`}
+            >
               {status.msg}
             </div>
           )}
@@ -169,16 +171,27 @@ const InvestmentModal = ({
                           ["Max stake", `$${plan.max.toLocaleString()}`],
                           ["Lock term", plan.duration],
                         ].map(([label, value]) => (
-                          <div key={label} className="flex items-center justify-between">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-700">{label}</span>
-                            <span className="text-[9px] font-bold uppercase text-gray-300">{value}</span>
+                          <div
+                            key={label}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-700">
+                              {label}
+                            </span>
+                            <span className="text-[9px] font-bold uppercase text-gray-300">
+                              {value}
+                            </span>
                           </div>
                         ))}
                       </div>
 
                       <div className="mt-5 flex items-center justify-between rounded-xl border border-white/[0.06] bg-black/15 px-3 py-2.5">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-gray-600">Open plan</span>
-                        <span className="text-nirshux-accent transition-transform group-hover:translate-x-1">→</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest text-gray-600">
+                          Open plan
+                        </span>
+                        <span className="text-nirshux-accent transition-transform group-hover:translate-x-1">
+                          →
+                        </span>
                       </div>
                     </button>
                   ))}
@@ -192,7 +205,9 @@ const InvestmentModal = ({
                       Capital allocation · USD
                     </p>
                     <div className="mt-5 flex items-center justify-center gap-2">
-                      <span className="text-3xl font-black text-gray-700">$</span>
+                      <span className="text-3xl font-black text-gray-700">
+                        $
+                      </span>
                       <input
                         type="number"
                         min={selectedPlan.min}
@@ -220,7 +235,9 @@ const InvestmentModal = ({
                     type="submit"
                     className="w-full rounded-2xl bg-nirshux-accent py-4.5 text-sm font-black uppercase tracking-[0.16em] text-black transition-all hover:shadow-[0_0_35px_rgba(0,242,195,0.2)] disabled:opacity-50"
                   >
-                    {loading ? "Initializing..." : `Execute $${Number(amount || 0).toLocaleString()} Stake`}
+                    {loading
+                      ? "Initializing..."
+                      : `Execute $${Number(amount || 0).toLocaleString()} Stake`}
                   </button>
 
                   <button

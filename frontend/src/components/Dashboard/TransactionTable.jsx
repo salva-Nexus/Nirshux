@@ -1,4 +1,3 @@
-// frontend/src/components/Dashboard/TransactionTable.jsx
 import React from "react";
 
 const formatAddress = (tx) => {
@@ -11,27 +10,26 @@ const formatAddress = (tx) => {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 };
 
-// Internal transaction types (maturity_release, referral_bonus, investment)
-// carry bookkeeping labels the user shouldn't need to parse. Coin fields for
-// these are also stuffed with notes like "USD (PREMIUM PLAN Matured)" —
-// strip that down to just the asset.
 const formatCoin = (coin) => {
   if (!coin) return "USD";
   return coin.split("(")[0].trim() || "USD";
 };
 
 const StatusBadge = ({ status }) => {
+  const normalized = String(status || "pending").toLowerCase();
   const map = {
-    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    pending: "bg-yellow-500/10  text-yellow-400  border-yellow-500/20",
-    failed: "bg-red-500/10     text-red-400     border-red-500/20",
+    success: "border-emerald-400/15 bg-emerald-400/10 text-emerald-400",
+    completed: "border-emerald-400/15 bg-emerald-400/10 text-emerald-400",
+    pending: "border-amber-400/15 bg-amber-400/10 text-amber-400",
+    failed: "border-red-400/15 bg-red-400/10 text-red-400",
   };
+
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest ${map[status] || map.pending}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-widest ${map[normalized] || map.pending}`}
     >
-      {status}
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {normalized}
     </span>
   );
 };
@@ -41,38 +39,38 @@ const TypeBadge = ({ type }) => {
     type === "deposit" ||
     type === "referral_bonus" ||
     type === "maturity_release";
-  // User only ever needs to know: did money come in, or go out.
-  // "maturity release" / "referral bonus" are internal ledger labels.
+
   return (
     <span
-      className={`text-[9px] font-black uppercase tracking-wider ${isIn ? "text-nirshux-accent" : "text-gray-400"}`}
+      className={`inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.16em] ${isIn ? "text-nirshux-accent" : "text-gray-500"}`}
     >
-      {isIn ? "↓ Deposit" : "↑ Withdrawal"}
+      <span className="text-[11px]">{isIn ? "↓" : "↑"}</span>
+      {isIn ? "Incoming" : "Outgoing"}
     </span>
   );
 };
 
-const TransactionTable = ({ transactions, limit }) => {
+const TransactionTable = ({ transactions = [], limit }) => {
   const displayData = limit ? transactions.slice(0, limit) : transactions;
 
-  // ── FIX: Type, then Amount, then the rest (Address, Asset, Status) ──
-  const columns = ["Type", "Amount", "Address", "Asset", "Status"];
-
   return (
-    <div className="overflow-x-auto -mx-1">
-      <table className="w-full text-left border-collapse min-w-[420px] sm:min-w-[540px]">
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[650px] border-collapse text-left">
         <thead>
           <tr className="border-b border-white/[0.06]">
-            {columns.map((h) => (
-              <th
-                key={h}
-                className="py-2 px-1.5 sm:py-3 sm:px-3 text-[8px] sm:text-[9px] font-black text-gray-600 uppercase tracking-widest whitespace-nowrap"
-              >
-                {h}
-              </th>
-            ))}
+            {["Transaction", "Amount", "Address", "Asset", "Status"].map(
+              (heading) => (
+                <th
+                  key={heading}
+                  className="px-3 py-3 text-[8px] font-black uppercase tracking-[0.2em] text-gray-600 first:pl-1"
+                >
+                  {heading}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
+
         <tbody>
           {displayData.length > 0 ? (
             displayData.map((tx, i) => {
@@ -84,47 +82,42 @@ const TransactionTable = ({ transactions, limit }) => {
               return (
                 <tr
                   key={tx._id || i}
-                  className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group"
+                  className="group border-b border-white/[0.035] transition-colors hover:bg-white/[0.018]"
                 >
-                  {/* Type */}
-                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                  <td className="px-3 py-4 first:pl-1">
                     <TypeBadge type={tx.type} />
                   </td>
 
-                  {/* Amount */}
-                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                  <td className="px-3 py-4">
                     <span
-                      className={`font-mono font-black text-xs sm:text-sm whitespace-nowrap ${isIn ? "text-white" : "text-gray-400"}`}
+                      className={`font-mono text-xs font-black ${isIn ? "text-white" : "text-gray-400"}`}
                     >
                       {isIn ? "+" : "-"}$
                       {Number(tx.amount || 0).toLocaleString()}
                     </span>
                   </td>
 
-                  {/* Address */}
-                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
-                    <span className="font-mono text-[9px] sm:text-[10px] text-gray-400 bg-white/[0.03] px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md border border-white/[0.06] group-hover:border-white/10 transition-colors whitespace-nowrap">
+                  <td className="px-3 py-4">
+                    <span className="rounded-lg border border-white/[0.06] bg-white/[0.025] px-2 py-1 font-mono text-[9px] text-gray-500">
                       {formatAddress(tx)}
                     </span>
                   </td>
 
-                  {/* Asset / Coin */}
-                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[8px] sm:text-[9px] font-black text-nirshux-accent bg-nirshux-accent/10 px-1.5 sm:px-2 py-0.5 rounded uppercase whitespace-nowrap">
+                  <td className="px-3 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md border border-nirshux-accent/10 bg-nirshux-accent/[0.07] px-2 py-1 text-[8px] font-black uppercase tracking-wider text-nirshux-accent">
                         {formatCoin(tx.coin)}
                       </span>
                       {tx.network &&
                         !/protocol|bonus|internal/i.test(tx.network) && (
-                          <span className="hidden sm:inline text-[9px] text-gray-600 font-mono">
+                          <span className="text-[8px] font-mono text-gray-700">
                             {tx.network}
                           </span>
                         )}
                     </div>
                   </td>
 
-                  {/* Status */}
-                  <td className="py-2.5 px-1.5 sm:py-3.5 sm:px-3">
+                  <td className="px-3 py-4">
                     <StatusBadge status={tx.status} />
                   </td>
                 </tr>
@@ -132,8 +125,11 @@ const TransactionTable = ({ transactions, limit }) => {
             })
           ) : (
             <tr>
-              <td colSpan={columns.length} className="py-16 text-center">
-                <p className="text-gray-600 font-mono text-[10px] uppercase tracking-widest">
+              <td colSpan={5} className="py-16 text-center">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.025] text-gray-700">
+                  ◷
+                </div>
+                <p className="mt-3 text-[9px] font-black uppercase tracking-[0.2em] text-gray-600">
                   No transmissions on record
                 </p>
               </td>

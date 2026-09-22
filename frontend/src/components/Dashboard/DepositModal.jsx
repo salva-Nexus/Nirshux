@@ -90,7 +90,9 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
         onClick={handleClose}
       />
 
-      <div className={`fixed left-1/2 top-8 z-[300] -translate-x-1/2 transition-all duration-300 ${showToast ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0 pointer-events-none"}`}>
+      <div
+        className={`fixed left-1/2 top-8 z-[300] -translate-x-1/2 transition-all duration-300 ${showToast ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0 pointer-events-none"}`}
+      >
         <div className="rounded-full border border-nirshux-accent/20 bg-[#11161A] px-5 py-2.5 text-[9px] font-black uppercase tracking-[0.18em] text-nirshux-accent shadow-[0_10px_30px_rgba(0,0,0,0.3)]">
           ✓ Copied to clipboard
         </div>
@@ -135,8 +137,12 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-3">
               <div className="mb-6">
-                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-gray-600">01 · Define capital</p>
-                <p className="mt-1 text-[10px] text-gray-500">Enter the amount you intend to fund.</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.22em] text-gray-600">
+                  01 · Define capital
+                </p>
+                <p className="mt-1 text-[10px] text-gray-500">
+                  Enter the amount you intend to fund.
+                </p>
               </div>
 
               <div className="rounded-[1.5rem] border border-white/[0.07] bg-white/[0.025] p-5">
@@ -186,7 +192,9 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
                 ← Back to amount
               </button>
 
-              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-gray-600">02 · Select gateway</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-gray-600">
+                02 · Select gateway
+              </p>
               <h3 className="mt-1 text-lg font-black uppercase text-white">
                 Available payment routes
               </h3>
@@ -207,8 +215,12 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
                   </div>
                 ) : wallets.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-red-400/15 bg-red-400/[0.03] py-14 text-center">
-                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-red-400">No gateways available</p>
-                    <p className="mt-1 text-[8px] text-gray-600">Contact support</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-red-400">
+                      No gateways available
+                    </p>
+                    <p className="mt-1 text-[8px] text-gray-600">
+                      Contact support
+                    </p>
                   </div>
                 ) : (
                   wallets.map((wallet) => (
@@ -225,8 +237,12 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
                           {wallet.symbol}
                         </div>
                         <div>
-                          <p className="text-sm font-black uppercase tracking-tight text-white">{wallet.coinName}</p>
-                          <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-gray-600">{wallet.network}</p>
+                          <p className="text-sm font-black uppercase tracking-tight text-white">
+                            {wallet.coinName}
+                          </p>
+                          <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-gray-600">
+                            {wallet.network}
+                          </p>
                         </div>
                       </div>
                       <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.07] text-gray-600 transition group-hover:border-nirshux-accent/20 group-hover:bg-nirshux-accent group-hover:text-black">
@@ -263,9 +279,12 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
                     {selectedWallet.symbol[0]}
                   </div>
                   <div>
-                    <p className="text-xl font-black text-white">{amount} {selectedWallet.symbol}</p>
+                    <p className="text-xl font-black text-white">
+                      {amount} {selectedWallet.symbol}
+                    </p>
                     <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-gray-600">
-                      ${parseFloat(amount).toLocaleString()} USD · {selectedWallet.network}
+                      ${parseFloat(amount).toLocaleString()} USD ·{" "}
+                      {selectedWallet.network}
                     </p>
                   </div>
                 </div>
@@ -292,18 +311,27 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
                 <div className="flex gap-3">
                   <span className="text-amber-400">!</span>
                   <p className="text-[8px] leading-relaxed text-amber-100/50">
-                    <strong className="text-amber-400">Network warning:</strong> Send only {selectedWallet.symbol} over {selectedWallet.network}. Cross-chain errors may result in loss.
+                    <strong className="text-amber-400">Network warning:</strong>{" "}
+                    Send only {selectedWallet.symbol} over{" "}
+                    {selectedWallet.network}. Cross-chain errors may result in
+                    loss.
                   </p>
                 </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2.5 rounded-2xl border border-white/[0.06] bg-black/15 p-4">
                 <div>
-                  <p className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-700">Status</p>
-                  <p className="mt-1 text-[9px] font-black uppercase text-nirshux-accent">Awaiting payment</p>
+                  <p className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-700">
+                    Status
+                  </p>
+                  <p className="mt-1 text-[9px] font-black uppercase text-nirshux-accent">
+                    Awaiting payment
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-700">Confirmations</p>
+                  <p className="text-[7px] font-black uppercase tracking-[0.2em] text-gray-700">
+                    Confirmations
+                  </p>
                   <p className="mt-1 text-[9px] font-black text-white">0 / 3</p>
                 </div>
               </div>
@@ -319,7 +347,13 @@ const DepositModal = ({ isOpen, onClose, refreshData }) => {
                       : "bg-white text-black hover:bg-nirshux-accent"
                 }`}
               >
-                {loading ? "Transmitting..." : status === "success" ? "✓ Logged" : status === "error" ? "✕ Failed" : "Confirm deposit"}
+                {loading
+                  ? "Transmitting..."
+                  : status === "success"
+                    ? "✓ Logged"
+                    : status === "error"
+                      ? "✕ Failed"
+                      : "Confirm deposit"}
               </button>
             </div>
           )}
