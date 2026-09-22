@@ -228,18 +228,6 @@ const Dashboard = () => {
                     Your capital, performance and activity at a glance.
                   </p>
                 </div>
-
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
-                  <span className="text-[8px] font-black uppercase tracking-[0.18em] text-gray-600">
-                    Network status
-                  </span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-nirshux-accent shadow-[0_0_9px_rgba(0,242,195,0.8)]" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-nirshux-accent">
-                      Operational
-                    </span>
-                  </div>
-                </div>
               </header>
 
               <StatsGrid userData={userData} />

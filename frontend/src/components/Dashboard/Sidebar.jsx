@@ -106,18 +106,6 @@ const Sidebar = ({
             </button>
           ))}
         </nav>
-
-        <div className="absolute bottom-6 left-4 right-4 rounded-2xl border border-nirshux-accent/10 bg-nirshux-accent/[0.035] p-4">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-nirshux-accent shadow-[0_0_12px_rgba(0,242,195,0.8)]" />
-            <span className="text-[9px] font-black uppercase tracking-[0.18em] text-nirshux-accent">
-              Engine online
-            </span>
-          </div>
-          <p className="mt-2 text-[9px] leading-relaxed text-gray-600">
-            Secure portfolio workspace
-          </p>
-        </div>
       </aside>
     </>
   );
