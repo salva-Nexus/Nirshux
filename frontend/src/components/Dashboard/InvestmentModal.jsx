@@ -1,4 +1,3 @@
-// frontend/src/components/Dashboard/InvestmentModal.jsx
 import React, { useState } from "react";
 import API from "../../api";
 import { INVESTMENT_PLANS } from "../../constants/plans";
@@ -16,7 +15,6 @@ const InvestmentModal = ({
 
   if (!isOpen) return null;
 
-  // Admin-disabled plans are excluded entirely — not shown, not selectable.
   const plans = INVESTMENT_PLANS.filter((p) => !disabledPlans.includes(p.name));
 
   const handleClose = () => {
@@ -28,13 +26,25 @@ const InvestmentModal = ({
 
   const handleInvest = async (e) => {
     e.preventDefault();
+    if (!selectedPlan) return;
+
+    const numericAmount = Number(amount);
     setLoading(true);
     setStatus({ type: "", msg: "" });
 
-    if (Number(amount) < selectedPlan.min) {
+    if (numericAmount < selectedPlan.min) {
       setStatus({
         type: "error",
-        msg: `Minimum investment is $${selectedPlan.min.toLocaleString()}`,
+        msg: `Minimum allocation is $${selectedPlan.min.toLocaleString()}.`,
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (selectedPlan.max && numericAmount > selectedPlan.max) {
+      setStatus({
+        type: "error",
+        msg: `Maximum allocation is $${selectedPlan.max.toLocaleString()}.`,
       });
       setLoading(false);
       return;
@@ -44,21 +54,19 @@ const InvestmentModal = ({
       const response = await API.post(
         "/api/investor/invest",
         {
-          amount: Number(amount),
+          amount: numericAmount,
           planName: selectedPlan.name,
           dailyRoi: selectedPlan.dailyValue,
           durationDays: selectedPlan.days,
         },
-        {
-          headers: { "x-auth-token": localStorage.getItem("token") },
-        },
+        { headers: { "x-auth-token": localStorage.getItem("token") } },
       );
 
       setStatus({ type: "success", msg: response.data.msg });
       setTimeout(() => {
         refreshData();
         handleClose();
-      }, 2000);
+      }, 1600);
     } catch (err) {
       const code = err.response?.data?.msg;
       const friendlyMsg =
@@ -72,146 +80,177 @@ const InvestmentModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl overflow-y-auto outline-none">
-      <div className="min-h-screen flex flex-col items-center justify-start py-20 px-4">
-        <div className="bg-[#161A1E] border border-white/10 w-full max-w-4xl rounded-[2rem] p-6 md:p-10 shadow-2xl relative animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter italic">
-                {selectedPlan ? "Confirm Protocol" : "Select Capital Plan"}
-              </h2>
-              <p className="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-1">
-                {selectedPlan
-                  ? `Deploying to: ${selectedPlan.name}`
-                  : "Institutional-grade returns powered by Nirshux Engine."}
-              </p>
+    <div className="fixed inset-0 z-[200] overflow-y-auto bg-black/80 backdrop-blur-xl">
+      <div className="min-h-screen px-4 py-8 md:py-12">
+        <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[#0F1418] shadow-[0_30px_100px_rgba(0,0,0,0.55)]">
+          <div className="h-px bg-gradient-to-r from-transparent via-nirshux-accent/70 to-transparent" />
+
+          <div className="border-b border-white/[0.06] p-6 md:p-8">
+            <div className="flex items-start justify-between gap-5">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-nirshux-accent shadow-[0_0_10px_rgba(0,242,195,0.8)]" />
+                  <span className="text-[8px] font-black uppercase tracking-[0.25em] text-nirshux-accent">
+                    Capital Desk
+                  </span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black uppercase tracking-[-0.03em] text-white">
+                  {selectedPlan ? "Confirm Allocation" : "Select Capital Plan"}
+                </h2>
+                <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-gray-600">
+                  {selectedPlan
+                    ? `Deploying to ${selectedPlan.name}`
+                    : "Choose an allocation protocol"}
+                </p>
+              </div>
+
+              <button
+                onClick={handleClose}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.03] text-xl text-gray-500 transition hover:border-red-400/20 hover:bg-red-400/10 hover:text-red-400"
+              >
+                ×
+              </button>
             </div>
-            <button
-              onClick={handleClose}
-              className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-red-500/20 hover:text-red-500 rounded-full text-white text-2xl transition-all"
-            >
-              &times;
-            </button>
           </div>
 
           {status.msg && (
             <div
-              className={`mb-6 p-4 rounded-xl text-xs font-black border uppercase tracking-widest ${status.type === "error" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-nirshux-accent/10 border-nirshux-accent/20 text-nirshux-accent"}`}
+              className={`mx-6 mt-6 rounded-2xl border p-4 text-[9px] font-black uppercase tracking-[0.14em] md:mx-8 ${
+                status.type === "error"
+                  ? "border-red-400/15 bg-red-400/[0.06] text-red-400"
+                  : "border-nirshux-accent/15 bg-nirshux-accent/[0.06] text-nirshux-accent"
+              }`}
             >
               {status.msg}
             </div>
           )}
 
-          {!selectedPlan ? (
-            plans.length === 0 ? (
-              <div className="py-16 text-center border border-dashed border-white/10 rounded-3xl">
-                <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">
-                  No investment plans currently available
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {plans.map((plan, index) => (
-                  <div
-                    key={index}
-                    className={`relative bg-white/[0.02] border ${plan.popular ? "border-nirshux-accent/40 shadow-[0_0_30px_rgba(0,255,163,0.05)]" : "border-white/5"} p-6 rounded-[1.5rem] flex flex-col hover:border-nirshux-accent/40 transition-all group cursor-pointer`}
-                    onClick={() => setSelectedPlan(plan)}
-                  >
-                    {plan.popular && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-nirshux-accent text-black text-[9px] font-black px-3 py-0.5 rounded-full uppercase tracking-tighter">
-                        High Yield
-                      </span>
-                    )}
-
-                    <div className="text-3xl mb-3">{plan.icon}</div>
-                    <h3 className="text-gray-500 font-black text-[10px] uppercase tracking-widest mb-1">
-                      {plan.name}
-                    </h3>
-                    <p className="text-white text-3xl font-black mb-4 italic">
-                      {plan.roi}{" "}
-                      <span className="text-[10px] text-gray-500 font-normal not-italic tracking-normal">
-                        DAILY
-                      </span>
-                    </p>
-
-                    {/* ✅ FIXED: NOW SHOWS MIN, MAX, AND LOCK TERM */}
-                    <div className="space-y-2 border-t border-white/5 pt-4 mb-6 text-[11px] font-bold">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 uppercase">
-                          Min Stake
-                        </span>
-                        <span className="text-white font-mono">
-                          ${plan.min.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 uppercase">
-                          Max Stake
-                        </span>
-                        <span className="text-white font-mono">
-                          ${plan.max.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 uppercase">
-                          Lock Term
-                        </span>
-                        <span className="text-white uppercase">
-                          {plan.duration}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button className="w-full bg-white/5 text-white font-black py-3 rounded-xl group-hover:bg-nirshux-accent group-hover:text-black transition-all uppercase text-[10px] tracking-widest">
-                      Select Plan
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="max-w-md mx-auto py-4">
-              <form onSubmit={handleInvest} className="space-y-6">
-                <div className="bg-white/5 border border-white/10 p-10 rounded-[2rem] text-center">
-                  <label className="block text-gray-500 text-[10px] font-black uppercase tracking-widest mb-6">
-                    Capital Allocation (USD)
-                  </label>
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-4xl font-black text-gray-600">$</span>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder={`${selectedPlan.min.toLocaleString()} - ${selectedPlan.max.toLocaleString()}`}
-                      className="bg-transparent text-5xl font-black text-nirshux-accent outline-none placeholder:text-lg placeholder:text-white/40 w-full max-w-[200px]"
-                      autoFocus
-                      required
-                    />
-                  </div>
+          <div className="p-6 md:p-8">
+            {!selectedPlan ? (
+              plans.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/[0.08] bg-white/[0.015] py-20 text-center">
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-gray-600">
+                    No investment plans currently available
+                  </p>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {plans.map((plan) => (
+                    <button
+                      key={plan.name}
+                      onClick={() => setSelectedPlan(plan)}
+                      className={`group relative overflow-hidden rounded-[1.5rem] border p-5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.25)] ${
+                        plan.popular
+                          ? "border-nirshux-accent/25 bg-nirshux-accent/[0.045]"
+                          : "border-white/[0.07] bg-white/[0.02] hover:border-nirshux-accent/20"
+                      }`}
+                    >
+                      {plan.popular && (
+                        <span className="absolute right-4 top-4 rounded-full border border-nirshux-accent/20 bg-nirshux-accent/10 px-2.5 py-1 text-[7px] font-black uppercase tracking-widest text-nirshux-accent">
+                          High Yield
+                        </span>
+                      )}
 
-                <div className="flex flex-col gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.035] text-2xl">
+                        {plan.icon}
+                      </div>
+
+                      <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-600">
+                        {plan.name}
+                      </p>
+                      <p className="mt-1 text-3xl font-black tracking-[-0.04em] text-white">
+                        {plan.roi}
+                        <span className="ml-1.5 text-[8px] font-black uppercase tracking-widest text-gray-600">
+                          daily
+                        </span>
+                      </p>
+
+                      <div className="mt-5 space-y-2.5 border-t border-white/[0.06] pt-4">
+                        {[
+                          ["Min stake", `$${plan.min.toLocaleString()}`],
+                          ["Max stake", `$${plan.max.toLocaleString()}`],
+                          ["Lock term", plan.duration],
+                        ].map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-700">
+                              {label}
+                            </span>
+                            <span className="text-[9px] font-bold uppercase text-gray-300">
+                              {value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 flex items-center justify-between rounded-xl border border-white/[0.06] bg-black/15 px-3 py-2.5">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-gray-600">
+                          Open plan
+                        </span>
+                        <span className="text-nirshux-accent transition-transform group-hover:translate-x-1">
+                          →
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="mx-auto max-w-md">
+                <form onSubmit={handleInvest} className="space-y-5">
+                  <div className="rounded-[1.75rem] border border-white/[0.07] bg-white/[0.025] p-7 text-center">
+                    <p className="text-[8px] font-black uppercase tracking-[0.22em] text-gray-600">
+                      Capital allocation · USD
+                    </p>
+                    <div className="mt-5 flex items-center justify-center gap-2">
+                      <span className="text-3xl font-black text-gray-700">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min={selectedPlan.min}
+                        max={selectedPlan.max}
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder={`${selectedPlan.min.toLocaleString()}–${selectedPlan.max.toLocaleString()}`}
+                        className="w-full max-w-[250px] bg-transparent text-center text-4xl font-black tracking-[-0.04em] text-nirshux-accent outline-none placeholder:text-lg placeholder:text-gray-700"
+                        autoFocus
+                        required
+                      />
+                    </div>
+                    <div className="mt-5 flex justify-center gap-2">
+                      <span className="rounded-full bg-white/[0.035] px-2.5 py-1 text-[8px] font-bold text-gray-600">
+                        MIN ${selectedPlan.min.toLocaleString()}
+                      </span>
+                      <span className="rounded-full bg-white/[0.035] px-2.5 py-1 text-[8px] font-bold text-gray-600">
+                        MAX ${selectedPlan.max.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
                   <button
                     disabled={loading}
                     type="submit"
-                    className="w-full bg-nirshux-accent text-black font-black py-5 rounded-2xl hover:shadow-[0_0_20px_rgba(0,255,163,0.3)] transition-all uppercase tracking-widest text-sm disabled:opacity-50"
+                    className="w-full rounded-2xl bg-nirshux-accent py-4.5 text-sm font-black uppercase tracking-[0.16em] text-black transition-all hover:shadow-[0_0_35px_rgba(0,242,195,0.2)] disabled:opacity-50"
                   >
                     {loading
                       ? "Initializing..."
                       : `Execute $${Number(amount || 0).toLocaleString()} Stake`}
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setSelectedPlan(null)}
-                    className="w-full bg-transparent text-gray-600 font-black py-3 text-[10px] uppercase tracking-widest hover:text-white transition-all"
+                    className="w-full py-2 text-[8px] font-black uppercase tracking-[0.2em] text-gray-600 transition hover:text-white"
                   >
-                    Return to Plans
+                    ← Return to plans
                   </button>
-                </div>
-              </form>
-            </div>
-          )}
+                </form>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
