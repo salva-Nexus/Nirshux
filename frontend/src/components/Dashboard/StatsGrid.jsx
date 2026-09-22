@@ -1,79 +1,55 @@
+// frontend/src/components/Dashboard/StatsGrid.jsx
 import React from "react";
 
-const money = (value) =>
-  `$${Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
-
 const StatsGrid = ({ userData }) => {
-  const stats = [
+  // "Amount Deposited" removed — it was computed as balance + totalInvested,
+  // which isn't actually total deposited (and silently broke to $0 whenever
+  // either field was undefined, since `undefined + n` is NaN and `NaN || 0`
+  // masks it). Available Balance is now the headline stat instead, per the
+  // single-source-of-truth balance model.
+  const secondaryStats = [
     {
       label: "Total Invested",
-      value: money(userData.totalInvested),
-      icon: "◆",
+      value: `$${(userData.totalInvested || 0).toLocaleString()}`,
     },
-    { label: "Total Earned", value: money(userData.totalEarned), icon: "↗" },
-    { label: "Total Withdrawn", value: money(userData.withdrawn), icon: "↑" },
+    {
+      label: "Total Earned",
+      value: `$${(userData.totalEarned || 0).toLocaleString()}`,
+    },
+    {
+      label: "Total Withdrawn",
+      value: `$${(userData.withdrawn || 0).toLocaleString()}`,
+    },
   ];
 
   return (
-    <section className="space-y-3">
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-nirshux-accent/20 bg-gradient-to-br from-nirshux-accent/[0.12] via-[#11161A] to-[#0D1013] p-5 md:p-6 shadow-[0_18px_55px_rgba(0,0,0,0.2)]">
-        <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-nirshux-accent/[0.07] blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-nirshux-accent/30 to-transparent" />
-
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-nirshux-accent shadow-[0_0_10px_rgba(0,242,195,0.8)]" />
-              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-nirshux-accent">
-                Available Balance
-              </p>
-            </div>
-            <p className="text-3xl md:text-4xl font-black tracking-[-0.04em] text-white">
-              {money(userData.balance)}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-white/[0.06] bg-black/20 px-3 py-2">
-            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-600">
-              Account liquidity
-            </p>
-            <p className="mt-1 text-[10px] font-bold text-gray-400">
-              Ready to deploy
-            </p>
-          </div>
-        </div>
+    <div className="space-y-3">
+      {/* Available Balance — headline card, full width, accented */}
+      <div className="bg-gradient-to-br from-nirshux-accent/10 to-[#161A1E] border border-nirshux-accent/30 p-6 rounded-xl flex flex-col items-center justify-center text-center shadow-[0_0_25px_rgba(0,242,195,0.08)]">
+        <p className="text-nirshux-accent text-[11px] font-bold uppercase tracking-widest mb-2">
+          Available Balance
+        </p>
+        <p className="text-white text-3xl font-black">
+          ${(userData.balance || 0).toLocaleString()}
+        </p>
       </div>
 
+      {/* Secondary stats */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        {stats.map((stat) => (
+        {secondaryStats.map((stat, idx) => (
           <div
-            key={stat.label}
-            className="group rounded-[1.5rem] border border-white/[0.06] bg-[#11161A] p-5
-              transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.11]
-              hover:bg-[#13191D] hover:shadow-[0_18px_40px_rgba(0,0,0,0.18)]"
+            key={idx}
+            className="bg-[#161A1E] border border-white/5 p-6 rounded-xl flex flex-col items-center justify-center text-center shadow-sm"
           >
-            <div className="flex items-center justify-between">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.035] border border-white/[0.06] text-[11px] text-gray-500 group-hover:text-nirshux-accent group-hover:bg-nirshux-accent/10">
-                {stat.icon}
-              </span>
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-700">
-                Portfolio
-              </span>
-            </div>
-            <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-600">
+            <p className="text-white text-[11px] font-medium uppercase tracking-wider mb-2">
               {stat.label}
             </p>
-            <p className="mt-1.5 text-xl font-black tracking-tight text-white">
-              {stat.value}
-            </p>
+            <p className="text-white text-xl font-bold">{stat.value}</p>
           </div>
         ))}
       </div>
-    </section>
+    </div>
   );
-};
+}; //
 
 export default StatsGrid;
