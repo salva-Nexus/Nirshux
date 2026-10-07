@@ -15,7 +15,7 @@ const rateLimit = require("express-rate-limit");
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error("JWT_SECRET environment variable is required");
 
-const TOKEN_TTL = "1m"; // server-side expiry, slightly longer than the 30s frontend session
+const TOKEN_TTL = "1d"; // server-side expiry, slightly longer than the 5-minute frontend session
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_OTP_ATTEMPTS = 5; // wrong guesses allowed per issued code
 
