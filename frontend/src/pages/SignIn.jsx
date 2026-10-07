@@ -33,28 +33,34 @@ const SignIn = () => {
     setStatus({ type: '', msg: '' });
 
     try {
-      const res = await API.post('/api/auth/login', { email, password });
+      const res = await API.post("/api/auth/login", { email, password });
 
       // Save token
+      localStorage.setItem("token", res.data.token);
       startSession();
 
       // ── FIX: decode the JWT to get role, OR fetch profile right after login ──
       // The backend returns { token, user: { id, fullName, email } } — no role.
       // We decode the JWT payload (it contains role) without a library.
-      let role = 'user';
+      let role = "user";
       try {
-        const payload = JSON.parse(atob(res.data.token.split('.')[1]));
-        role = payload.role || 'user';
-      } catch (_) { /* keep default */ }
+        const payload = JSON.parse(atob(res.data.token.split(".")[1]));
+        role = payload.role || "user";
+      } catch (_) {
+        /* keep default */
+      }
 
       const userToSave = {
         ...res.data.user,
         role,
       };
-      localStorage.setItem('user', JSON.stringify(userToSave));
+      localStorage.setItem("user", JSON.stringify(userToSave));
 
-      setStatus({ type: 'success', msg: 'Authentication successful! Entering terminal...' });
-      setTimeout(() => navigate('/dashboard'), 1500);
+      setStatus({
+        type: "success",
+        msg: "Authentication successful! Entering terminal...",
+      });
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
       setStatus({ type: 'error', msg: err.response?.data?.msg || 'Invalid Credentials' });
     } finally {
