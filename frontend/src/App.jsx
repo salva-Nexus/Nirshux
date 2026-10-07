@@ -22,6 +22,7 @@ import AboutUs from "./pages/AboutUs";
 import FAQ from "./pages/FAQ";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import SessionGuard from "./components/SessionGuard";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -130,6 +131,7 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
+      <SessionGuard />
       <AppContent />
     </Router>
   );

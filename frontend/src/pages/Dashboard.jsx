@@ -25,6 +25,8 @@ import History from "../components/History";
 import ProfileView from "./ProfileView";
 import ChatWidget from "../components/ChatWidget";
 import AdminChatWidget from "../components/AdminChatWidget";
+import { endSession } from "../components/SessionGuard";
+
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
   const [view, setView] = useState("oversight");
@@ -43,8 +45,7 @@ const Dashboard = () => {
     setTimeout(() => setTerminalMsg(""), 3000);
   };
   const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/signin";
+    endSession(false);
   };
   useEffect(() => {
     const handleClickOutside = (event) => {

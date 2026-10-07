@@ -6,6 +6,9 @@ const cors = require('cors');
 
 const app = express();
 
+// Required behind Vercel/Render/Nginx so rate limiting sees the real client IP
+app.set("trust proxy", 1);
+
 // --- MIDDLEWARE ---
 app.use(cors({
   origin: [

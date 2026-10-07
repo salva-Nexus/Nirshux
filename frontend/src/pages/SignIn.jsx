@@ -1,9 +1,10 @@
 // frontend/src/page/SignIn.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import API from '../api';
+import { startSession } from "../components/SessionGuard";
 
 const SignIn = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -11,6 +12,17 @@ const SignIn = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  // Shows the styled notice after a forced logout from SessionGuard
+  useEffect(() => {
+    if (sessionStorage.getItem("sessionExpired")) {
+      sessionStorage.removeItem("sessionExpired");
+      setStatus({
+        type: "info",
+        msg: "Your session has ended. Please sign in again.",
+      });
+    }
+  }, []);
 
   const { email, password } = formData;
   const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,7 +36,7 @@ const SignIn = () => {
       const res = await API.post('/api/auth/login', { email, password });
 
       // Save token
-      localStorage.setItem('token', res.data.token);
+      startSession();
 
       // ── FIX: decode the JWT to get role, OR fetch profile right after login ──
       // The backend returns { token, user: { id, fullName, email } } — no role.
@@ -86,9 +98,11 @@ const SignIn = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`p-4 rounded-xl mb-6 text-sm font-medium border ${
+                className={`p-4 rounded-xl mb-6 text-sm font-medium border backdrop-blur-sm ${
                   status.type === 'success'
                     ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                    : status.type === 'info'
+                    ? 'bg-nirshux-accent/10 border-nirshux-accent/30 text-nirshux-accent'
                     : 'bg-red-500/10 border-red-500/50 text-red-400'
                 }`}
               >
