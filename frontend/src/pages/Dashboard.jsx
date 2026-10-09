@@ -1,13 +1,4 @@
 // frontend/src/pages/Dashboard.jsx
-// ── ONLY CHANGE: root div class changed from
-//    "bg-[#0B0E11] min-h-screen text-white overflow-x-hidden relative"
-//    to
-//    "bg-[#0B0E11] min-h-screen text-white relative"
-//
-// overflow-x-hidden creates a new stacking context that clips position:fixed children
-// on Chrome/Safari, breaking the chat widget positioning.
-//
-// Horizontal overflow is still contained by the inner <main> element.
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
@@ -26,6 +17,7 @@ import ProfileView from "./ProfileView";
 import ChatWidget from "../components/ChatWidget";
 import AdminChatWidget from "../components/AdminChatWidget";
 import { endSession } from "../components/SessionGuard";
+import AdminPushToggle from "../components/AdminPushToggle";
 
 const Dashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -191,6 +183,9 @@ const Dashboard = () => {
                 >
                   ⚡ Admin Terminal{" "}
                 </button>
+              )}{" "}
+              {userData.role === "admin" && (
+                <AdminPushToggle onNotify={triggerNotification} />
               )}{" "}
               <button
                 onClick={handleLogout}

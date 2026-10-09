@@ -6,8 +6,8 @@ const User = require("../models/User");
 const { nanoid } = require("nanoid");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
+const { sendMail, notifyAdmin } = require("../utils/notify");
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 // No fallback secret: if JWT_SECRET is missing the server must refuse to run,
@@ -18,14 +18,6 @@ if (!JWT_SECRET) throw new Error("JWT_SECRET environment variable is required");
 const TOKEN_TTL = "1d"; // server-side expiry, slightly longer than the 5-minute frontend session
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_OTP_ATTEMPTS = 5; // wrong guesses allowed per issued code
-
-const mailer = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  connectionTimeout: 10000,
-  auth: { user: "nirshuxcom@gmail.com", pass: process.env.GMAIL_APP_PASSWORD },
-});
 
 // ─── RATE LIMITERS ────────────────────────────────────────────────────────────
 const makeLimiter = (windowMs, max, msg) =>
@@ -125,9 +117,9 @@ const validateResetCode = async (user, code) => {
   return { ok: true };
 };
 
+// Goes through the shared Gmail mailer. Resolves true/false, never throws.
 const sendOtpEmail = (to, otp) =>
-  mailer.sendMail({
-    from: '"Nirshux Terminal" <nirshuxcom@gmail.com>',
+  sendMail({
     to,
     subject: "NIRSHUX - Password Reset Code",
     html: `
@@ -178,6 +170,21 @@ router.post("/register", registerLimiter, async (req, res) => {
     });
 
     await newUser.save();
+
+    // Email + push to admin. Awaited (serverless freezes after the response),
+    // never throws, so it can never break a successful registration.
+    await notifyAdmin({
+      event: "register",
+      title: "New User Registered",
+      body: `${newUser.fullName} (${newUser.email}) just created an account.`,
+      rows: [
+        ["Name", newUser.fullName],
+        ["Email", newUser.email],
+        ["Referred By", newUser.referredBy || "—"],
+      ],
+      url: "/admin-panel",
+    });
+
     res.status(201).json({ msg: "Account created successfully!" });
   } catch (err) {
     console.error("Registration error:", err);
@@ -202,6 +209,22 @@ router.post("/login", loginLimiter, async (req, res) => {
     const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
       expiresIn: TOKEN_TTL,
     });
+
+    // Don't notify the admin about their own logins.
+    if (user.role !== "admin") {
+      await notifyAdmin({
+        event: "login",
+        title: "User Logged In",
+        body: `${user.fullName} (${user.email}) just signed in.`,
+        rows: [
+          ["Name", user.fullName],
+          ["Email", user.email],
+          ["IP", req.ip || "—"],
+          ["Device", String(req.get("user-agent") || "—").slice(0, 80)],
+        ],
+        url: "/admin-panel",
+      });
+    }
 
     res.json({
       token,
@@ -235,11 +258,9 @@ router.post("/forgot-password", otpRequestLimiter, async (req, res) => {
       user.resetPasswordAttempts = 0;
       await user.save();
 
-      try {
-        await sendOtpEmail(user.email, otp);
-      } catch (emailError) {
-        console.error("❌ Reset email delivery failed:", emailError);
-      }
+      const sent = await sendOtpEmail(user.email, otp);
+      if (!sent)
+        console.error("❌ Reset email delivery failed for", user.email);
     }
 
     res.json({ msg: "Reset protocol initiated. Check your email." });

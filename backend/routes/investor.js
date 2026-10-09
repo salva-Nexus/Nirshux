@@ -6,7 +6,7 @@ const Wallet = require("../models/Wallet");
 const authMiddleware = require("../middleware/auth");
 const historyController = require("../controllers/historyController");
 const { createClient } = require("@supabase/supabase-js");
-const nodemailer = require("nodemailer");
+const { notifyAdmin, sendMail } = require("../utils/notify");
 
 // Initialize Supabase
 const supabase = createClient(
@@ -20,7 +20,7 @@ const supabase = createClient(
   },
 );
 
-// --- SECURE ROI CALCULATION FUNCTION --- (REPLACE THE ENTIRE FUNCTION)
+// --- SECURE ROI CALCULATION FUNCTION ---
 const calculateRoi = async (user) => {
   const now = new Date();
   const lastCalc = new Date(user.lastRoiCalculation || user.createdAt);
@@ -154,42 +154,26 @@ const calculateRoi = async (user) => {
   }
 };
 
-const sendAdminAlert = async (type, details) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true, // ✅ FIX: matches auth.js — 587 was ETIMEDOUT on this network
-      connectionTimeout: 10000,
-      auth: {
-        user: "nirshuxcom@gmail.com",
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    });
-
-    await transporter.sendMail({
-      from: '"Nirshux System" <nirshuxcom@gmail.com>',
-      to: "nirshuxcom@gmail.com", // Sending it to yourself as admin
-      subject: `🚨 NEW ${type.toUpperCase()} REQUEST`,
-      html: `
-        <div style="font-family: monospace; background: #0A0A0B; color: #fff; padding: 20px; border: 1px solid #00F2C3;">
-          <h2 style="color: #00F2C3;">[PROTOCOL ALERT]</h2>
-          <p><strong>Type:</strong> ${type}</p>
-          <p><strong>User:</strong> ${details.email}</p>
-          <p><strong>Amount:</strong> $${details.amount}</p>
-          <p><strong>Asset:</strong> ${details.coin} (${details.network})</p>
-          <hr style="border: 0.5px solid #333;" />
-          <p style="font-size: 10px; color: #666;">Check the Admin Dashboard to approve/reject.</p>
-        </div>
-      `,
-    });
-    console.log(`📧 Admin alerted for ${type}`);
-  } catch (err) {
-    console.error("❌ Admin Email Alert Failed:", err.message);
-  }
+// Deposit / withdrawal request → email + push to admin. Never throws.
+const sendAdminAlert = (type, details) => {
+  const event =
+    String(type).toLowerCase() === "withdrawal" ? "withdrawal" : "deposit";
+  const amount = Number(details.amount || 0).toLocaleString();
+  return notifyAdmin({
+    event,
+    title: `${type} Request — $${amount}`,
+    body: `${details.email} opened a ${event} request of $${amount} ${details.coin || ""}`.trim(),
+    rows: [
+      ["User", details.email],
+      ["Type", type],
+      ["Amount", `$${amount}`],
+      ["Asset", `${details.coin} (${details.network})`],
+    ],
+    url: "/admin-panel",
+  });
 };
 
-// --- 1. PROFILE ROUTE (WITH ROI CALCULATION) --- (REPLACE THE ENTIRE ROUTE)
+// --- 1. PROFILE ROUTE (WITH ROI CALCULATION) ---
 router.get("/profile", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
@@ -242,9 +226,7 @@ router.get("/whitelisted-wallets", authMiddleware, async (req, res) => {
 // ✅ FIX: DepositModal has always POSTed the selected gateway's address as
 // `addressUsed` in the request body — but this route only ever destructured
 // { amount, coin, network }, so that field was silently dropped on arrival.
-// The Transaction was created with addressUsed left undefined, which is why
-// nothing ever showed up in Recent Transactions / the ledger / the admin
-// panel. Now it's actually read off the body and stored, exactly like the
+// Now it's actually read off the body and stored, exactly like the
 // withdrawal route already does.
 router.post("/deposit-request", authMiddleware, async (req, res) => {
   try {
@@ -262,14 +244,15 @@ router.post("/deposit-request", authMiddleware, async (req, res) => {
     });
 
     const savedTrx = await newTrx.save();
+    user.transactions.push(savedTrx._id);
+    await user.save();
+
     await sendAdminAlert("Deposit", {
       email: user.email,
       amount,
       coin,
       network,
     });
-    user.transactions.push(savedTrx._id);
-    await user.save();
 
     res.status(200).json({ msg: "Deposit protocol initiated." });
   } catch (err) {
@@ -420,14 +403,15 @@ router.post("/withdraw-request", authMiddleware, async (req, res) => {
     });
 
     const savedTrx = await newTrx.save();
+    user.transactions.push(savedTrx._id);
+    await user.save();
+
     await sendAdminAlert("Withdrawal", {
       email: user.email,
       amount,
       coin,
       network,
     });
-    user.transactions.push(savedTrx._id);
-    await user.save();
 
     res.json({ msg: "WITHDRAWAL_REQUEST_QUEUED" });
   } catch (err) {
@@ -469,45 +453,30 @@ router.post("/request-email-update", authMiddleware, async (req, res) => {
     user.resetPasswordExpire = Date.now() + 600000;
     await user.save();
 
-    console.log(`Email change OTP for ${oldEmail}: ${otp}`);
-
-    try {
-      const nodemailer = require("nodemailer");
-      const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true, // ✅ FIX: matches other transports — 587 was ETIMEDOUT here
-        connectionTimeout: 10000,
-        auth: {
-          user: "nirshuxcom@gmail.com",
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-      });
-
-      await transporter.sendMail({
-        from: '"Nirshux Terminal" <nirshuxcom@gmail.com>',
-        to: oldEmail,
-        subject: "NIRSHUX - Email Change Security Code",
-        html: `
-          <div style="font-family: monospace; background: #0A0A0A; color: #fff; padding: 40px; text-align: center;">
-            <h1 style="color: #00F2C3; text-transform: uppercase; font-weight: 900;">NIRSHUX TERMINAL</h1>
-            <p style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Email Change Verification</p>
-            <div style="background: #1a1a1a; border: 2px solid #00F2C3; border-radius: 16px; padding: 30px; margin: 30px 0;">
-              <p style="color: #999; font-size: 11px; text-transform: uppercase; margin-bottom: 20px;">Your Security Code:</p>
-              <h2 style="font-size: 48px; letter-spacing: 8px; color: #00F2C3; font-weight: 900; margin: 0;">${otp}</h2>
-            </div>
-            <p style="color: #666; font-size: 11px;">This code expires in 10 minutes.</p>
-            <p style="color: #444; font-size: 10px; margin-top: 40px;">If you didn't request this, ignore this message.</p>
+    const sent = await sendMail({
+      to: user.email,
+      subject: "NIRSHUX - Email Change Security Code",
+      html: `
+        <div style="font-family: monospace; background: #0A0A0A; color: #fff; padding: 40px; text-align: center;">
+          <h1 style="color: #00F2C3; text-transform: uppercase; font-weight: 900;">NIRSHUX TERMINAL</h1>
+          <p style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Email Change Verification</p>
+          <div style="background: #1a1a1a; border: 2px solid #00F2C3; border-radius: 16px; padding: 30px; margin: 30px 0;">
+            <p style="color: #999; font-size: 11px; text-transform: uppercase; margin-bottom: 20px;">Your Security Code:</p>
+            <h2 style="font-size: 48px; letter-spacing: 8px; color: #00F2C3; font-weight: 900; margin: 0;">${otp}</h2>
           </div>
-        `,
-      });
+          <p style="color: #666; font-size: 11px;">This code expires in 10 minutes.</p>
+          <p style="color: #444; font-size: 10px; margin-top: 40px;">If you didn't request this, ignore this message.</p>
+        </div>
+      `,
+    });
 
-      console.log("Email change code sent successfully");
-      res.json({ msg: "SECURITY_CODE_SENT_TO_OLD_EMAIL" });
-    } catch (emailError) {
-      console.error("Email sending error:", emailError);
+    if (!sent) {
+      console.error("Email change code delivery failed for", user.email);
       return res.status(500).json({ msg: "EMAIL_DELIVERY_FAILED" });
     }
+
+    console.log("Email change code sent successfully");
+    res.json({ msg: "SECURITY_CODE_SENT_TO_OLD_EMAIL" });
   } catch (err) {
     console.error("Request email update error:", err);
     res.status(500).json({ msg: "TRANSMISSION_ERROR" });

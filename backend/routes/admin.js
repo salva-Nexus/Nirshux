@@ -3,7 +3,14 @@ const router = require("express").Router();
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const Wallet = require("../models/Wallet");
+const PushSubscription = require("../models/PushSubscription");
 const authMiddleware = require("../middleware/auth");
+const {
+  sendMail,
+  sendPushToAdmins,
+  verifyMail,
+  getLastMailError,
+} = require("../utils/notify");
 
 const adminOnly = async (req, res, next) => {
   try {
@@ -15,16 +22,6 @@ const adminOnly = async (req, res, next) => {
     res.status(500).json({ msg: "SECURITY_ERROR" });
   }
 };
-
-const nodemailer = require("nodemailer");
-
-const adminMailer = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // ✅ FIX: matches other transports — 587 was ETIMEDOUT here
-  connectionTimeout: 10000,
-  auth: { user: "nirshuxcom@gmail.com", pass: process.env.GMAIL_APP_PASSWORD },
-});
 
 const sendTransactionEmail = async (
   toEmail,
@@ -108,12 +105,8 @@ const sendTransactionEmail = async (
     </div>
   `;
 
-  await adminMailer.sendMail({
-    from: '"Nirshux Terminal" <nirshuxcom@gmail.com>',
-    to: toEmail,
-    subject,
-    html,
-  });
+  // sendMail never throws — resolves true/false and logs the exact SMTP error
+  await sendMail({ to: toEmail, subject, html });
 };
 
 // Admin balance mutations that record as a deposit/withdrawal need a real
@@ -220,7 +213,7 @@ router.put(
           // admin panel, so most increases stay silent unless explicitly
           // requested. Transaction history above is recorded regardless.
           if (sendEmail === true) {
-            sendTransactionEmail(
+            await sendTransactionEmail(
               user.email,
               user.fullName,
               "deposit",
@@ -327,7 +320,7 @@ router.put(
       await user.save();
 
       if (recordedType && sendEmail === true) {
-        sendTransactionEmail(
+        await sendTransactionEmail(
           user.email,
           user.fullName,
           recordedType,
@@ -614,8 +607,8 @@ router.put(
       await user.save();
       await trx.save();
 
-      // Fire email — non-blocking, don't fail the request if email fails
-      sendTransactionEmail(
+      // Awaited so serverless hosts don't freeze it; failures are logged, never block the response.
+      await sendTransactionEmail(
         user.email,
         user.fullName,
         "deposit",
@@ -648,7 +641,7 @@ router.put(
       await trx.save();
 
       if (user) {
-        sendTransactionEmail(
+        await sendTransactionEmail(
           user.email,
           user.fullName,
           "deposit",
@@ -715,7 +708,7 @@ router.put(
       await user.save();
       await trx.save();
 
-      sendTransactionEmail(
+      await sendTransactionEmail(
         user.email,
         user.fullName,
         "withdrawal",
@@ -748,7 +741,7 @@ router.put(
       await trx.save();
 
       if (user) {
-        sendTransactionEmail(
+        await sendTransactionEmail(
           user.email,
           user.fullName,
           "withdrawal",
@@ -798,6 +791,92 @@ router.delete("/wallet/:id", [authMiddleware, adminOnly], async (req, res) => {
     res.json({ msg: "ASSET_DE_LISTED" });
   } catch (err) {
     res.status(500).json({ msg: "REVOCATION_FAILED" });
+  }
+});
+
+// --- PUSH NOTIFICATION OPERATIONS ---
+
+router.get("/push/public-key", [authMiddleware, adminOnly], (req, res) => {
+  const key = process.env.VAPID_PUBLIC_KEY;
+  if (!key) return res.status(503).json({ msg: "PUSH_NOT_CONFIGURED" });
+  res.json({ key });
+});
+
+router.post(
+  "/push/subscribe",
+  [authMiddleware, adminOnly],
+  async (req, res) => {
+    try {
+      const sub = req.body && req.body.subscription;
+      if (
+        !sub ||
+        !sub.endpoint ||
+        !sub.keys ||
+        !sub.keys.p256dh ||
+        !sub.keys.auth
+      )
+        return res.status(400).json({ msg: "INVALID_SUBSCRIPTION" });
+
+      await PushSubscription.findOneAndUpdate(
+        { endpoint: sub.endpoint },
+        {
+          user: req.user.id,
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+          userAgent: req.get("user-agent") || "",
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+      res.json({ msg: "PUSH_SUBSCRIBED" });
+    } catch (err) {
+      console.error("🔔 Subscribe failed:", err.message);
+      res.status(500).json({ msg: "SUBSCRIBE_FAILED" });
+    }
+  },
+);
+
+router.post(
+  "/push/unsubscribe",
+  [authMiddleware, adminOnly],
+  async (req, res) => {
+    try {
+      const { endpoint } = req.body || {};
+      if (!endpoint) return res.status(400).json({ msg: "ENDPOINT_REQUIRED" });
+      await PushSubscription.deleteOne({ endpoint, user: req.user.id });
+      res.json({ msg: "PUSH_UNSUBSCRIBED" });
+    } catch (err) {
+      res.status(500).json({ msg: "UNSUBSCRIBE_FAILED" });
+    }
+  },
+);
+
+router.post("/push/test", [authMiddleware, adminOnly], async (req, res) => {
+  try {
+    await sendPushToAdmins({
+      title: "🔔 Push alerts are live",
+      body: "You'll be notified of signups, logins, deposits, withdrawals and chats.",
+      url: "/admin-panel",
+      event: "test",
+    });
+    res.json({ msg: "TEST_SENT" });
+  } catch (err) {
+    res.status(500).json({ msg: "TEST_FAILED" });
+  }
+});
+
+// --- MAIL DIAGNOSTICS ---
+// POST /api/admin/mail/test → checks Gmail on 465 + 587, then sends a real test email to the admin inbox
+router.post("/mail/test", [authMiddleware, adminOnly], async (req, res) => {
+  try {
+    const checks = await verifyMail();
+    const sent = await sendMail({
+      to: process.env.ADMIN_EMAIL || "nirshuxcom@gmail.com",
+      subject: "✅ Nirshux mail test",
+      html: '<div style="font-family:monospace;background:#0A0A0A;color:#00F2C3;padding:24px;">SMTP is working.</div>',
+    });
+    res.json({ sent, checks, error: sent ? null : getLastMailError() });
+  } catch (err) {
+    res.status(500).json({ msg: "MAIL_TEST_FAILED", error: err.message });
   }
 });
 
