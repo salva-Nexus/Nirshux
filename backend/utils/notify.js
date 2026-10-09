@@ -12,17 +12,30 @@ const CLIENT_URL = (process.env.CLIENT_URL || "https://nirshux.online").replace(
 const SMTP_TIMEOUT_MS = 8000;
 const PUSH_TIMEOUT_MS = 10000;
 
-const pushReady = !!(
-  process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
-);
-if (pushReady) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || `mailto:${ADMIN_EMAIL}`,
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY,
-  );
-} else {
-  console.warn("⚠️ VAPID keys missing — push notifications disabled");
+// Strips whitespace, newlines and wrapping quotes that hosting dashboards often add.
+const cleanEnv = (v) =>
+  String(v || "")
+    .trim()
+    .replace(/^["']+|["']+$/g, "")
+    .trim();
+
+// A bad push config must NEVER crash the server (it would take login down with it).
+// If setup fails, push is simply disabled and everything else keeps working.
+let pushReady = false;
+try {
+  const vapidPublic = cleanEnv(process.env.VAPID_PUBLIC_KEY);
+  const vapidPrivate = cleanEnv(process.env.VAPID_PRIVATE_KEY);
+  const vapidSubject = cleanEnv(process.env.VAPID_SUBJECT) || `mailto:${ADMIN_EMAIL}`;
+
+  if (vapidPublic && vapidPrivate) {
+    webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
+    pushReady = true;
+  } else {
+    console.warn("⚠️ VAPID keys missing — push notifications disabled");
+  }
+} catch (err) {
+  pushReady = false;
+  console.error("⚠️ VAPID setup failed — push disabled:", err.message);
 }
 
 const esc = (v) =>
