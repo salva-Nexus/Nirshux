@@ -10,6 +10,22 @@ const urlBase64ToUint8Array = (b64) => {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 };
 
+// True only if the existing browser subscription was made with the SAME server key.
+// A subscription made with a different key is accepted by the browser but the push
+// service rejects every send to it, which looks exactly like "push does nothing".
+const sameKey = (sub, key) => {
+  try {
+    const current = new Uint8Array(sub.options.applicationServerKey);
+    const wanted = urlBase64ToUint8Array(key);
+    return (
+      current.length === wanted.length &&
+      current.every((v, i) => v === wanted[i])
+    );
+  } catch (_) {
+    return false;
+  }
+};
+
 const supported = () =>
   typeof window !== "undefined" &&
   "serviceWorker" in navigator &&
@@ -59,7 +75,6 @@ const AdminPushToggle = ({ onNotify }) => {
     try {
       return await reg.pushManager.subscribe(opts);
     } catch (err) {
-      // Stale subscription from an old VAPID key — drop it and retry once
       const old = await reg.pushManager.getSubscription();
       if (old) await old.unsubscribe();
       return reg.pushManager.subscribe(opts);
@@ -74,13 +89,29 @@ const AdminPushToggle = ({ onNotify }) => {
         setState(permission === "denied" ? "blocked" : "off");
         return;
       }
+
       const reg = await getRegistration();
       const { data } = await API.get("/api/admin/push/public-key");
-      const sub =
-        (await reg.pushManager.getSubscription()) ||
-        (await subscribe(reg, data.key));
+
+      // Reuse the existing subscription only if it was made with the current key
+      let sub = await reg.pushManager.getSubscription();
+      if (sub && !sameKey(sub, data.key)) {
+        await sub.unsubscribe();
+        sub = null;
+      }
+      if (!sub) sub = await subscribe(reg, data.key);
+
       await syncToServer(sub);
-      await API.post("/api/admin/push/test");
+
+      const test = await API.post("/api/admin/push/test");
+      if (!test.data?.ok) {
+        const reason =
+          (test.data?.errors && test.data.errors[0]) || "NOT DELIVERED";
+        setState("off");
+        notify(`PUSH FAILED: ${String(reason).slice(0, 90)}`);
+        return;
+      }
+
       setState("on");
       notify("PUSH ALERTS ENABLED");
     } catch (err) {

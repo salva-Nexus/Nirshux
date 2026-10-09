@@ -857,15 +857,18 @@ router.post(
 
 router.post("/push/test", [authMiddleware, adminOnly], async (req, res) => {
   try {
-    await sendPushToAdmins({
+    const result = await sendPushToAdmins({
       title: "🔔 Push alerts are live",
       body: "You'll be notified of signups, logins, deposits, withdrawals and chats.",
       url: "/admin-panel",
       event: "test",
     });
-    res.json({ msg: "TEST_SENT" });
+    res.json({
+      msg: result.ok ? "TEST_SENT" : "TEST_NOT_DELIVERED",
+      ...result,
+    });
   } catch (err) {
-    res.status(500).json({ msg: "TEST_FAILED" });
+    res.status(500).json({ msg: "TEST_FAILED", errors: [err.message] });
   }
 });
 

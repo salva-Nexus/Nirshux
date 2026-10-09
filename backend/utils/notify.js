@@ -271,16 +271,29 @@ const sendPushToAdmins = async ({
   event = "alert",
   sticky = false,
 }) => {
-  if (!pushReady) return;
+  const result = { ok: false, total: 0, sent: 0, removed: 0, errors: [] };
+
+  if (!pushReady) {
+    result.errors.push(pushError || "Push is not configured on the server");
+    console.error("🔔 Push skipped:", result.errors[0]);
+    return result;
+  }
 
   let subs = [];
   try {
     subs = await PushSubscription.find();
   } catch (err) {
+    result.errors.push(`DB error: ${err.message}`);
     console.error("🔔 Push: failed to load subscriptions:", err.message);
-    return;
+    return result;
   }
-  if (!subs.length) return;
+
+  result.total = subs.length;
+  if (!subs.length) {
+    result.errors.push("No push subscription is saved in the database");
+    console.warn("🔔 Push skipped: no subscriptions saved");
+    return result;
+  }
 
   const payload = JSON.stringify({
     title: clip(title, 80),
@@ -303,19 +316,27 @@ const sendPushToAdmins = async ({
           payload,
           { TTL: 86400, urgency: "high", timeout: PUSH_TIMEOUT_MS },
         );
+        result.sent += 1;
       } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) {
+        const code = err.statusCode || "";
+        if (code === 404 || code === 410) {
           await PushSubscription.deleteOne({ _id: s._id }).catch(() => {});
-        } else {
-          console.error(
-            "🔔 Push send failed:",
-            err.statusCode || "",
-            err.message,
+          result.removed += 1;
+          result.errors.push(
+            `${code} subscription expired — toggle Push Alerts off and on`,
           );
+        } else {
+          const detail = `${code} ${err.body || err.message}`.trim();
+          result.errors.push(detail);
+          console.error("🔔 Push send failed:", detail);
         }
       }
     }),
   );
+
+  result.ok = result.sent > 0;
+  console.log(`🔔 Push [${event}]: delivered ${result.sent}/${result.total}`);
+  return result;
 };
 
 // ───────────────────────── PUBLIC HELPERS ─────────────────────────
