@@ -180,5 +180,4 @@ const AdminPushToggle = ({ onNotify }) => {
     </button>
   );
 };
-
 export default AdminPushToggle;
