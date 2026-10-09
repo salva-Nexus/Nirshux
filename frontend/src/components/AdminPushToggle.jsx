@@ -86,7 +86,7 @@ const AdminPushToggle = ({ onNotify }) => {
     } catch (err) {
       console.error("Push enable failed:", err);
       setState("off");
-      notify("PUSH SETUP FAILED");
+      notify(err.response?.data?.msg || "PUSH SETUP FAILED");
     }
   };
 

@@ -22,21 +22,33 @@ const cleanEnv = (v) =>
 // A bad push config must NEVER crash the server (it would take login down with it).
 // If setup fails, push is simply disabled and everything else keeps working.
 let pushReady = false;
+let pushError = "";
+let vapidPublicClean = "";
 try {
   const vapidPublic = cleanEnv(process.env.VAPID_PUBLIC_KEY);
   const vapidPrivate = cleanEnv(process.env.VAPID_PRIVATE_KEY);
   const vapidSubject = cleanEnv(process.env.VAPID_SUBJECT) || `mailto:${ADMIN_EMAIL}`;
 
-  if (vapidPublic && vapidPrivate) {
+  if (!vapidPublic || !vapidPrivate) {
+    const missing = [
+      !vapidPublic && "VAPID_PUBLIC_KEY",
+      !vapidPrivate && "VAPID_PRIVATE_KEY",
+    ].filter(Boolean);
+    pushError = `${missing.join(" + ")} not set on the server`;
+    console.warn(`⚠️ ${pushError} — push notifications disabled`);
+  } else {
     webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
     pushReady = true;
-  } else {
-    console.warn("⚠️ VAPID keys missing — push notifications disabled");
+    vapidPublicClean = vapidPublic;
   }
 } catch (err) {
   pushReady = false;
+  pushError = err.message;
   console.error("⚠️ VAPID setup failed — push disabled:", err.message);
 }
+
+// Used by the admin route so the browser always gets the exact key the server validated.
+const getPushStatus = () => ({ ready: pushReady, key: vapidPublicClean, error: pushError });
 
 const esc = (v) =>
   String(v ?? "")
@@ -362,6 +374,7 @@ const notifyUserChatReply = async ({ toEmail, userName, message }) => {
 };
 
 module.exports = {
+  getPushStatus,
   sendMail,
   verifyMail,
   getLastMailError,

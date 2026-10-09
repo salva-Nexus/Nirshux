@@ -10,6 +10,7 @@ const {
   sendPushToAdmins,
   verifyMail,
   getLastMailError,
+  getPushStatus,
 } = require("../utils/notify");
 
 const adminOnly = async (req, res, next) => {
@@ -797,9 +798,13 @@ router.delete("/wallet/:id", [authMiddleware, adminOnly], async (req, res) => {
 // --- PUSH NOTIFICATION OPERATIONS ---
 
 router.get("/push/public-key", [authMiddleware, adminOnly], (req, res) => {
-  const key = process.env.VAPID_PUBLIC_KEY;
-  if (!key) return res.status(503).json({ msg: "PUSH_NOT_CONFIGURED" });
-  res.json({ key });
+  const status = getPushStatus();
+  if (!status.ready) {
+    return res
+      .status(503)
+      .json({ msg: `PUSH_NOT_CONFIGURED: ${status.error || "unknown"}` });
+  }
+  res.json({ key: status.key });
 });
 
 router.post(
