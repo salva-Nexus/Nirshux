@@ -62,4 +62,3 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// This file is for Nirshux, not salva.. make sure its working
