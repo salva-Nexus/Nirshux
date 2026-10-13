@@ -2,6 +2,7 @@
 const nodemailer = require("nodemailer");
 const webpush = require("web-push");
 const PushSubscription = require("../models/PushSubscription");
+const User = require("../models/User");
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "nirshuxcom@gmail.com";
 const FROM_NAME = "Nirshux Terminal";
@@ -27,7 +28,8 @@ let vapidPublicClean = "";
 try {
   const vapidPublic = cleanEnv(process.env.VAPID_PUBLIC_KEY);
   const vapidPrivate = cleanEnv(process.env.VAPID_PRIVATE_KEY);
-  const vapidSubject = cleanEnv(process.env.VAPID_SUBJECT) || `mailto:${ADMIN_EMAIL}`;
+  const vapidSubject =
+    cleanEnv(process.env.VAPID_SUBJECT) || `mailto:${ADMIN_EMAIL}`;
 
   if (!vapidPublic || !vapidPrivate) {
     const missing = [
@@ -48,7 +50,11 @@ try {
 }
 
 // Used by the admin route so the browser always gets the exact key the server validated.
-const getPushStatus = () => ({ ready: pushReady, key: vapidPublicClean, error: pushError });
+const getPushStatus = () => ({
+  ready: pushReady,
+  key: vapidPublicClean,
+  error: pushError,
+});
 
 const esc = (v) =>
   String(v ?? "")
@@ -263,42 +269,38 @@ const renderLayout = ({
   </div>
 </div>`;
 
-// ───────────────────────── WEB PUSH ─────────────────────────
-const sendPushToAdmins = async ({
-  title,
-  body,
-  url = "/admin-panel",
-  event = "alert",
-  sticky = false,
-}) => {
-  const result = { ok: false, total: 0, sent: 0, removed: 0, errors: [] };
+const emptyPushResult = () => ({
+  ok: false,
+  total: 0,
+  sent: 0,
+  removed: 0,
+  errors: [],
+});
 
-  if (!pushReady) {
-    result.errors.push(pushError || "Push is not configured on the server");
-    console.error("🔔 Push skipped:", result.errors[0]);
-    return result;
-  }
+// Returns a result object if push can't run at all, otherwise null.
+const pushBlocked = () => {
+  if (pushReady) return null;
+  const r = emptyPushResult();
+  r.errors.push(pushError || "Push is not configured on the server");
+  console.error("🔔 Push skipped:", r.errors[0]);
+  return r;
+};
 
-  let subs = [];
-  try {
-    subs = await PushSubscription.find();
-  } catch (err) {
-    result.errors.push(`DB error: ${err.message}`);
-    console.error("🔔 Push: failed to load subscriptions:", err.message);
-    return result;
-  }
-
+// Sends one payload to a list of saved subscriptions. Never throws.
+const deliverPush = async (subs, { title, body, url, event, sticky }) => {
+  const result = emptyPushResult();
   result.total = subs.length;
+
   if (!subs.length) {
-    result.errors.push("No push subscription is saved in the database");
-    console.warn("🔔 Push skipped: no subscriptions saved");
+    result.errors.push("No push subscription is saved for this recipient");
+    console.warn(`🔔 Push [${event}] skipped: no subscriptions saved`);
     return result;
   }
 
   const payload = JSON.stringify({
     title: clip(title, 80),
     body: clip(body, 180),
-    url, // path — service worker resolves it against its own origin
+    url, // path — the service worker resolves it against its own origin
     tag: `${event}-${Date.now()}`,
     sticky,
     icon: `${CLIENT_URL}/icon-192.png`,
@@ -323,7 +325,7 @@ const sendPushToAdmins = async ({
           await PushSubscription.deleteOne({ _id: s._id }).catch(() => {});
           result.removed += 1;
           result.errors.push(
-            `${code} subscription expired — toggle Push Alerts off and on`,
+            `${code} subscription expired — toggle push off and on`,
           );
         } else {
           const detail = `${code} ${err.body || err.message}`.trim();
@@ -337,6 +339,48 @@ const sendPushToAdmins = async ({
   result.ok = result.sent > 0;
   console.log(`🔔 Push [${event}]: delivered ${result.sent}/${result.total}`);
   return result;
+};
+
+// → every device subscribed by an ADMIN account
+const sendPushToAdmins = async ({
+  title,
+  body,
+  url = "/admin-panel",
+  event = "alert",
+  sticky = false,
+}) => {
+  const blocked = pushBlocked();
+  if (blocked) return blocked;
+  try {
+    const admins = await User.find({ role: "admin" }).select("_id");
+    const subs = await PushSubscription.find({
+      user: { $in: admins.map((a) => a._id) },
+    });
+    return await deliverPush(subs, { title, body, url, event, sticky });
+  } catch (err) {
+    const r = emptyPushResult();
+    r.errors.push(`DB error: ${err.message}`);
+    console.error("🔔 Push (admins) failed:", err.message);
+    return r;
+  }
+};
+
+// → every device subscribed by ONE specific user
+const sendPushToUser = async (
+  userId,
+  { title, body, url = "/dashboard", event = "alert", sticky = false },
+) => {
+  const blocked = pushBlocked();
+  if (blocked) return blocked;
+  try {
+    const subs = await PushSubscription.find({ user: userId });
+    return await deliverPush(subs, { title, body, url, event, sticky });
+  } catch (err) {
+    const r = emptyPushResult();
+    r.errors.push(`DB error: ${err.message}`);
+    console.error("🔔 Push (user) failed:", err.message);
+    return r;
+  }
 };
 
 // ───────────────────────── PUBLIC HELPERS ─────────────────────────
@@ -376,8 +420,8 @@ const notifyAdmin = async ({
   ]);
 };
 
-// Admin → user chat reply email. Never throws.
-const notifyUserChatReply = async ({ toEmail, userName, message }) => {
+// Admin → user chat reply: email + push. Never throws.
+const notifyUserChatReply = async ({ toEmail, userName, message, userId }) => {
   const html = renderLayout({
     color: "#A78BFA",
     badge: "💬 NEW REPLY FROM SUPPORT",
@@ -387,11 +431,23 @@ const notifyUserChatReply = async ({ toEmail, userName, message }) => {
     greeting: userName,
     footerNote: "Open your dashboard to continue the conversation.",
   });
-  return sendMail({
-    to: toEmail,
-    subject: "💬 New reply from Nirshux Support",
-    html,
-  });
+
+  const [sent] = await Promise.all([
+    sendMail({
+      to: toEmail,
+      subject: "💬 New reply from Nirshux Support",
+      html,
+    }),
+    userId
+      ? sendPushToUser(userId, {
+          title: "💬 New reply from Support",
+          body: message,
+          url: "/dashboard",
+          event: "chat-reply",
+        })
+      : null,
+  ]);
+  return sent;
 };
 
 module.exports = {
@@ -402,5 +458,6 @@ module.exports = {
   sendPushToAdmins,
   notifyAdmin,
   notifyUserChatReply,
+  sendPushToUser,
   esc,
 };

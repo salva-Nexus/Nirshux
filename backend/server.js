@@ -1,8 +1,10 @@
 // backend/server.js
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+require("dotenv").config();
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
 
 const app = express();
 
@@ -10,16 +12,19 @@ const app = express();
 app.set("trust proxy", 1);
 
 // --- MIDDLEWARE ---
-app.use(cors({
-  origin: [
-    "https://nirshux.online", 
-    "https://www.nirshux.online",
-    "http://localhost:3000", // Allow local testing
-    /\.vercel\.app$/           // Allow all Vercel preview branches
-  ],
-  credentials: true
-}));
-app.use(express.json()); 
+app.use(
+  cors({
+    origin: [
+      "https://nirshux.online",
+      "https://www.nirshux.online",
+      "http://localhost:3000", // Allow local testing
+      "http://localhost:5173",
+      /\.vercel\.app$/, // Allow all Vercel preview branches
+    ],
+    credentials: true,
+  }),
+);
+app.use(express.json());
 
 // Ensure DB is connected before processing any request
 app.use(async (req, res, next) => {
@@ -28,11 +33,11 @@ app.use(async (req, res, next) => {
 });
 
 // --- ROUTES ---
-app.use('/api/auth', require('./routes/auth')); 
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/investor', require('./routes/investor'));
-app.use('/api/market', require('./routes/market'));
-app.use('/api/chat', require('./routes/chat'));
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/admin", require("./routes/admin"));
+app.use("/api/investor", require("./routes/investor"));
+app.use("/api/market", require("./routes/market"));
+app.use("/api/chat", require("./routes/chat"));
 
 // --- DATABASE CONNECTION WITH TIMEOUT CONFIG ---
 const connectDB = async () => {

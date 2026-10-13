@@ -7,7 +7,7 @@
 // can't extend it, and activity in any tab counts for all tabs.
 import { useEffect } from "react";
 
-export const SESSION_LIMIT_MS = 5 * 60 * 1000; // 5 minutes of inactivity
+export const SESSION_LIMIT_MS = 180 * 60 * 1000; // 5 minutes of inactivity
 export const SESSION_KEY = "sessionExpiresAt";
 export const SESSION_FLAG = "sessionExpired";
 

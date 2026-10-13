@@ -57,6 +57,7 @@ router.post("/send", authMiddleware, async (req, res) => {
       const target = await User.findById(targetUserId).select("fullName email");
       if (target && target.email) {
         await notifyUserChatReply({
+          userId: target._id,
           toEmail: target.email,
           userName: target.fullName,
           message: cleanMessage,

@@ -11,6 +11,7 @@ const {
   verifyMail,
   getLastMailError,
   getPushStatus,
+  sendPushToUser,
 } = require("../utils/notify");
 
 const adminOnly = async (req, res, next) => {
@@ -108,6 +109,22 @@ const sendTransactionEmail = async (
 
   // sendMail never throws — resolves true/false and logs the exact SMTP error
   await sendMail({ to: toEmail, subject, html });
+
+  // Push to the user (only reaches them if they enabled it in Profile). Never blocks.
+  try {
+    const recipient = await User.findOne({ email: toEmail }).select("_id");
+    if (recipient) {
+      await sendPushToUser(recipient._id, {
+        title: `${statusIcon} ${isDeposit ? "Deposit" : "Withdrawal"} ${isApproved ? "Approved" : "Rejected"}`,
+        body: `Your ${type} of $${Number(amount).toLocaleString()} ${coin} was ${isApproved ? "approved" : "rejected"}.`,
+        url: "/dashboard",
+        event: type,
+        sticky: true,
+      });
+    }
+  } catch (err) {
+    console.error("🔔 User push failed:", err.message);
+  }
 };
 
 // Admin balance mutations that record as a deposit/withdrawal need a real

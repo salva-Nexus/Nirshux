@@ -6,7 +6,13 @@ const Wallet = require("../models/Wallet");
 const authMiddleware = require("../middleware/auth");
 const historyController = require("../controllers/historyController");
 const { createClient } = require("@supabase/supabase-js");
-const { notifyAdmin, sendMail } = require("../utils/notify");
+const PushSubscription = require("../models/PushSubscription");
+const {
+  notifyAdmin,
+  sendMail,
+  getPushStatus,
+  sendPushToUser,
+} = require("../utils/notify");
 
 // Initialize Supabase
 const supabase = createClient(
@@ -532,6 +538,75 @@ router.put("/confirm-email-update", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Confirm email update error:", err);
     res.status(500).json({ msg: "SERVER_SECURITY_ERROR" });
+  }
+});
+
+// --- USER PUSH NOTIFICATIONS (toggle lives in Profile) ---
+
+router.get("/push/public-key", authMiddleware, (req, res) => {
+  const status = getPushStatus();
+  if (!status.ready) {
+    return res
+      .status(503)
+      .json({ msg: `PUSH_NOT_CONFIGURED: ${status.error || "unknown"}` });
+  }
+  res.json({ key: status.key });
+});
+
+router.post("/push/subscribe", authMiddleware, async (req, res) => {
+  try {
+    const sub = req.body && req.body.subscription;
+    if (
+      !sub ||
+      !sub.endpoint ||
+      !sub.keys ||
+      !sub.keys.p256dh ||
+      !sub.keys.auth
+    )
+      return res.status(400).json({ msg: "INVALID_SUBSCRIPTION" });
+
+    await PushSubscription.findOneAndUpdate(
+      { endpoint: sub.endpoint },
+      {
+        user: req.user.id,
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+        userAgent: req.get("user-agent") || "",
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+    res.json({ msg: "PUSH_SUBSCRIBED" });
+  } catch (err) {
+    console.error("🔔 User subscribe failed:", err.message);
+    res.status(500).json({ msg: "SUBSCRIBE_FAILED" });
+  }
+});
+
+router.post("/push/unsubscribe", authMiddleware, async (req, res) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (!endpoint) return res.status(400).json({ msg: "ENDPOINT_REQUIRED" });
+    await PushSubscription.deleteOne({ endpoint, user: req.user.id });
+    res.json({ msg: "PUSH_UNSUBSCRIBED" });
+  } catch (err) {
+    res.status(500).json({ msg: "UNSUBSCRIBE_FAILED" });
+  }
+});
+
+router.post("/push/test", authMiddleware, async (req, res) => {
+  try {
+    const result = await sendPushToUser(req.user.id, {
+      title: "🔔 Push alerts are live",
+      body: "You'll be notified when your deposits, withdrawals and support replies are updated.",
+      url: "/dashboard",
+      event: "test",
+    });
+    res.json({
+      msg: result.ok ? "TEST_SENT" : "TEST_NOT_DELIVERED",
+      ...result,
+    });
+  } catch (err) {
+    res.status(500).json({ msg: "TEST_FAILED", errors: [err.message] });
   }
 });
 
